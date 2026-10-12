@@ -1,0 +1,2202 @@
+You are a senior quantitative developer, algorithmic-trading engineer, data engineer, software architect, risk-management engineer and full-stack developer.
+
+Build a complete Indian-market PAPER TRADING, BACKTESTING and MARKET-RESEARCH platform.
+
+The system must be designed around strict financial-data integrity, strict virtual-capital accounting, realistic paper execution and complete auditability.
+
+============================================================
+0. CORE PURPOSE
+============================================================
+
+Build a system for researching and paper-trading strategies on the Indian stock market, primarily:
+
+- NSE NIFTY 50
+- BANK NIFTY
+- FINNIFTY where appropriate
+- Liquid NSE stocks
+- NSE futures
+- NSE index options
+- NSE stock options
+
+The system must support:
+
+1. Historical market-data import
+2. Historical market study
+3. Technical indicators
+4. Market-structure analysis
+5. Market-regime detection
+6. Multiple trading strategies
+7. Backtesting
+8. Out-of-sample testing
+9. Walk-forward testing
+10. Historical market replay
+11. Live market-data paper trading
+12. F&O/options paper trading
+13. Risk management
+14. Trade journal
+15. Strategy comparison
+16. Performance analytics
+17. Optional AI analysis using a locally hosted Qwen model
+
+This is a PAPER-TRADING and RESEARCH system.
+
+It must NEVER place real trades.
+
+============================================================
+1. ABSOLUTE SAFETY REQUIREMENTS
+============================================================
+
+The application must NEVER:
+
+- place a real trade
+- send a real buy order
+- send a real sell order
+- modify a real order
+- cancel a real order
+- transfer money
+- access real trading funds
+- automatically trade a user's broker account
+- use Upstox order-placement APIs
+- use an AI model to place orders
+- allow AI to bypass risk management
+- fabricate market prices
+- fabricate historical data
+- fabricate backtest results
+- fabricate trading performance
+- create virtual money automatically
+- reset virtual capital automatically
+- add funds automatically
+- use future data in historical backtests
+
+Upstox, if integrated, must ONLY provide MARKET DATA.
+
+The internal application must be the ONLY paper-execution environment.
+
+============================================================
+2. ZERO-COST / FREE SOFTWARE REQUIREMENT
+============================================================
+
+The system must not require paid tools.
+
+Use free/open-source software and libraries.
+
+Do NOT require:
+
+- paid TradingView
+- paid charting libraries
+- paid databases
+- paid cloud services
+- paid market-data providers
+- paid backtesting platforms
+- paid AI APIs
+- OpenAI API
+- Anthropic API
+- Gemini API
+- proprietary paid analytics platforms
+
+The system must work completely with:
+
+- Python
+- React
+- TypeScript
+- SQLite
+- Pandas
+- NumPy
+- SciPy where appropriate
+- pytest
+- free/open-source charting
+- user-provided historical CSV/Parquet data
+
+Upstox may optionally be used for live market data if the user has valid access.
+
+============================================================
+3. PRIMARY TECHNOLOGY STACK
+============================================================
+
+Preferred architecture:
+
+BACKEND:
+- Python
+- FastAPI
+
+FRONTEND:
+- React
+- TypeScript
+- Vite
+
+DATABASE:
+- SQLite
+
+DATA ANALYSIS:
+- Pandas
+- NumPy
+- SciPy
+
+TESTING:
+- pytest
+
+ORM:
+- SQLAlchemy if useful
+
+CHARTING:
+- Free/open-source charting library
+- Do NOT require paid TradingView products
+
+OPTIONAL LOCAL AI:
+- Qwen
+- Ollama / llama.cpp / vLLM or another compatible local inference runtime
+
+Docker may be supported but must NOT be mandatory.
+
+The application should be easy to run locally.
+
+============================================================
+4. DATABASE
+============================================================
+
+Use SQLite as the default and required database.
+
+Database:
+
+data/trading.db
+
+Use SQLite WAL mode where appropriate.
+
+Create tables for:
+
+users
+paper_accounts
+instruments
+candles
+option_contracts
+option_chain
+indicators
+market_regimes
+strategies
+strategy_parameters
+signals
+paper_orders
+paper_positions
+paper_trades
+portfolio
+account_ledger
+risk_events
+backtests
+backtest_trades
+journal
+alerts
+data_quality
+ai_analysis_logs
+
+Create appropriate indexes for:
+
+timestamp
+symbol
+timeframe
+expiry
+strike
+option_type
+
+The database design must be modular enough to migrate to another database later without rewriting the business logic.
+
+============================================================
+5. STRICT ₹1,000 PAPER ACCOUNT
+============================================================
+
+The system must support configurable starting capital.
+
+DEFAULT:
+
+STARTING_CAPITAL = ₹1,000
+
+If the user enters:
+
+₹1,000
+
+then the account begins with EXACTLY:
+
+₹1,000
+
+The system must NEVER automatically increase this amount.
+
+There must be NO automatic:
+
+- deposits
+- capital injections
+- balance resets
+- daily funding
+- monthly funding
+- profit injections
+- emergency funding
+
+The initial capital is immutable.
+
+The user must explicitly create a new paper account if they want to start a new experiment.
+
+============================================================
+6. CLOSED ACCOUNT PRINCIPLE
+============================================================
+
+The paper account is a CLOSED ACCOUNT.
+
+Only the following may affect account equity:
+
+1. Realized trading profit
+2. Realized trading loss
+3. Unrealized P&L from open positions
+4. Simulated transaction costs
+5. Simulated slippage if enabled
+
+Nothing else may change the account.
+
+There must be NO unexplained balance changes.
+
+Example:
+
+Initial capital:
+
+₹1,000
+
+If a trade loses ₹100:
+
+Current equity = ₹900
+
+The system must NOT add ₹100.
+
+If another trade makes ₹50:
+
+Current equity = ₹950
+
+The system must NOT turn it into ₹1,050.
+
+============================================================
+7. CAPITAL ACCOUNTING
+============================================================
+
+Maintain separately:
+
+initial_capital
+cash_balance
+used_margin
+available_cash
+realized_pnl
+unrealized_pnl
+transaction_costs
+equity
+drawdown
+
+The system must maintain internally consistent accounting.
+
+Do not double-count P&L.
+
+Every balance change must be traceable.
+
+============================================================
+8. IMMUTABLE ACCOUNT LEDGER
+============================================================
+
+Create an account ledger.
+
+Every financial event must contain:
+
+event_id
+timestamp
+event_type
+symbol
+quantity
+price
+gross_amount
+fees
+slippage
+realized_pnl
+balance_before
+balance_after
+source
+reference_id
+
+Possible event types:
+
+INITIAL_CAPITAL
+PAPER_BUY
+PAPER_SELL
+PAPER_SHORT
+PAPER_COVER
+REALIZED_PROFIT
+REALIZED_LOSS
+FEES
+SLIPPAGE
+
+There must never be an unexplained:
+
++₹500
++₹1,000
++₹5,000
+
+balance change.
+
+============================================================
+9. ACCOUNT RECONCILIATION
+============================================================
+
+Create an automated reconciliation process.
+
+At all times verify:
+
+Current Equity =
+Initial Capital
++ Net Realized P&L
++ Net Unrealized P&L
+- Total Costs
+
+If the account cannot reconcile:
+
+STOP PAPER TRADING.
+
+Display:
+
+"ACCOUNTING ERROR — PAPER TRADING HALTED."
+
+Never silently repair or alter the balance.
+
+============================================================
+10. PRICE INTEGRITY
+============================================================
+
+The system must NEVER create market prices by itself.
+
+Every simulated execution price must come from:
+
+1. Upstox live market data
+2. Imported historical data
+3. Historical replay data stored in SQLite
+
+NOT allowed:
+
+- AI-generated prices
+- random prices
+- predicted prices
+- estimated prices
+- interpolated prices presented as real
+- synthetic prices presented as real
+- manually invented prices
+
+If valid market data is unavailable:
+
+DO NOT execute the paper trade.
+
+Display:
+
+"TRADE NOT EXECUTED — VALID MARKET PRICE UNAVAILABLE."
+
+============================================================
+11. LIVE DATA DISCONNECTION
+============================================================
+
+If Upstox live market data disconnects:
+
+- stop new paper trades
+- do not invent a new price
+- do not ask AI to estimate the price
+- do not generate synthetic market data
+- do not use a stale price as a new market price
+
+Existing positions may be marked:
+
+"PRICE UNAVAILABLE"
+
+until valid market data returns.
+
+============================================================
+12. UPSTOX MARKET-DATA INTEGRATION
+============================================================
+
+Implement Upstox as an OPTIONAL market-data provider.
+
+The architecture must have:
+
+MarketDataProvider
+
+Implement:
+
+CSVDataProvider
+SQLiteDataProvider
+UpstoxDataProvider
+
+Upstox must ONLY be used for market data.
+
+It must NEVER be used for:
+
+- placing orders
+- modifying orders
+- cancelling orders
+- executing real trades
+
+Do NOT import or expose Upstox order-placement APIs.
+
+The application must be structurally incapable of sending trading orders through Upstox.
+
+Use environment variables for credentials, for example:
+
+UPSTOX_ENABLED=false
+UPSTOX_CLIENT_ID=
+UPSTOX_CLIENT_SECRET=
+UPSTOX_ACCESS_TOKEN=
+
+Never hard-code secrets.
+
+Before implementing Upstox endpoints, use the current official Upstox API documentation if documentation access is available.
+
+Do not assume an API endpoint exists without verifying it.
+
+============================================================
+13. DATA PROVIDER ARCHITECTURE
+============================================================
+
+Create:
+
+MarketDataProvider
+
+Methods such as:
+
+get_historical_data()
+get_latest_quote()
+get_candles()
+get_option_chain()
+get_instruments()
+
+Implement:
+
+CSVProvider
+SQLiteProvider
+UpstoxProvider
+
+The strategy engine must not care where the data came from.
+
+============================================================
+14. HISTORICAL DATA IMPORT
+============================================================
+
+Support:
+
+CSV
+Parquet
+
+Minimum OHLCV fields:
+
+timestamp
+symbol
+open
+high
+low
+close
+volume
+
+Optional:
+
+open_interest
+expiry
+strike
+option_type
+
+Create a data-validation pipeline.
+
+Detect:
+
+- missing candles
+- duplicate candles
+- invalid timestamps
+- invalid OHLC relationships
+- zero/negative prices
+- abnormal gaps
+- invalid expiry
+- invalid strikes
+- duplicate contracts
+- missing volume
+
+Never silently discard bad data.
+
+Show data-quality warnings.
+
+============================================================
+15. HISTORICAL DATA RULE
+============================================================
+
+The system must NEVER pretend to have historical data that it does not possess.
+
+If the user has no historical data:
+
+tell the user that data must be imported or obtained through an available legitimate provider.
+
+Do not fabricate historical candles.
+
+============================================================
+16. MARKET INSTRUMENTS
+============================================================
+
+Support:
+
+NIFTY 50
+BANK NIFTY
+FINNIFTY
+NSE stocks
+NSE index futures
+NSE stock futures
+NSE index options
+NSE stock options
+
+Instrument types:
+
+SPOT
+FUTURE
+CALL
+PUT
+
+For options store:
+
+symbol
+expiry
+strike
+option_type
+lot_size
+timestamp
+OHLC
+volume
+open_interest
+
+Do not permanently hard-code lot sizes.
+
+Make contract specifications configurable because exchange specifications can change.
+
+============================================================
+17. TIMEFRAMES
+============================================================
+
+Support:
+
+1 minute
+3 minute
+5 minute
+10 minute
+15 minute
+30 minute
+1 hour
+Daily
+
+Default intraday timeframe:
+
+5 minutes.
+
+Allow timeframe selection.
+
+============================================================
+18. TECHNICAL INDICATORS
+============================================================
+
+Implement at minimum:
+
+TREND:
+
+- SMA
+- EMA
+- WMA
+- VWAP
+- Anchored VWAP
+- Supertrend
+- ADX
+- DI+
+- DI-
+
+MOMENTUM:
+
+- RSI
+- MACD
+- Stochastic
+- ROC
+
+VOLATILITY:
+
+- Bollinger Bands
+- ATR
+- Historical Volatility
+- Bollinger Band Width
+
+VOLUME:
+
+- Volume SMA
+- Relative Volume
+- OBV
+- Volume Breakout
+
+PRICE ACTION / MARKET STRUCTURE:
+
+- Swing High
+- Swing Low
+- Higher High
+- Higher Low
+- Lower High
+- Lower Low
+- Support
+- Resistance
+- Breakout
+- Breakdown
+- Retest
+
+OPTIONS:
+
+- Delta
+- Gamma
+- Theta
+- Vega
+- Implied Volatility
+- IV percentile where sufficient historical data exists
+- Put/Call Ratio
+- Open-interest change
+- Max pain
+
+Each indicator must have:
+
+- configurable parameters
+- tests
+- documentation
+- no look-ahead bias
+
+============================================================
+19. MARKET REGIME ENGINE
+============================================================
+
+Classify the market as:
+
+STRONG_BULLISH
+WEAK_BULLISH
+STRONG_BEARISH
+WEAK_BEARISH
+SIDEWAYS
+HIGH_VOLATILITY
+LOW_VOLATILITY
+BREAKOUT
+BREAKDOWN
+UNCERTAIN
+
+Use combinations of:
+
+- price structure
+- EMA
+- VWAP
+- ADX
+- ATR
+- Bollinger Band Width
+- volume
+- support/resistance
+
+The regime engine must be deterministic and explainable.
+
+Show:
+
+Current regime
+Confidence
+Reasons
+
+Do not claim certainty.
+
+============================================================
+20. STRATEGY ENGINE
+============================================================
+
+Implement each strategy as a separate modular strategy.
+
+============================================================
+21. BOX / RANGE TRADING
+============================================================
+
+Detect:
+
+- support
+- resistance
+- range boundaries
+- repeated touches
+- rejection
+- minimum range width
+
+Potential setups:
+
+- long near confirmed support
+- short near confirmed resistance
+
+Exit near opposite range boundary.
+
+Include:
+
+- number of touches
+- range width
+- volume confirmation
+- stop-loss
+- target
+- risk/reward
+
+Do NOT trade the range when a confirmed breakout/breakdown is occurring.
+
+============================================================
+22. BREAKOUT STRATEGY
+============================================================
+
+Detect:
+
+- resistance breakout
+- support breakdown
+- candle close confirmation
+- volume confirmation
+- ATR filter
+
+Support:
+
+- aggressive breakout
+- confirmed breakout
+- breakout + retest
+
+Include false-breakout filters.
+
+============================================================
+23. BREAKOUT + RETEST
+============================================================
+
+Detect sequence:
+
+Established level
+→ breakout
+→ pullback
+→ retest
+→ confirmation
+→ entry
+
+The system must define exact rules for confirmation.
+
+============================================================
+24. TREND-FOLLOWING
+============================================================
+
+Use:
+
+- EMA structure
+- VWAP
+- ADX
+- market structure
+
+Detect:
+
+- bullish trend
+- bearish trend
+- continuation
+- exhaustion
+
+============================================================
+25. PULLBACK STRATEGY
+============================================================
+
+In a confirmed trend:
+
+1. Identify trend.
+2. Wait for pullback.
+3. Identify support/resistance.
+4. Wait for confirmation.
+5. Enter in trend direction.
+
+============================================================
+26. VWAP STRATEGY
+============================================================
+
+Implement:
+
+- VWAP reclaim
+- VWAP rejection
+- VWAP breakdown
+- VWAP continuation
+- price above VWAP
+- price below VWAP
+- VWAP + volume confirmation
+
+============================================================
+27. BOLLINGER BAND STRATEGIES
+============================================================
+
+Implement:
+
+- Bollinger squeeze
+- Bollinger expansion
+- Bollinger breakout
+- mean reversion
+- band walk
+
+IMPORTANT:
+
+Never assume:
+
+upper band = automatic SELL
+
+lower band = automatic BUY
+
+Use market regime and price action as context.
+
+============================================================
+28. OPENING RANGE BREAKOUT
+============================================================
+
+Support:
+
+5-minute opening range
+15-minute opening range
+30-minute opening range
+
+Detect:
+
+- ORB breakout
+- volume confirmation
+- retest
+- stop-loss
+- target
+
+============================================================
+29. MOMENTUM STRATEGY
+============================================================
+
+Use:
+
+- price momentum
+- relative volume
+- RSI
+- ADX
+- breakout structure
+
+Avoid excessively extended entries unless explicitly configured.
+
+============================================================
+30. SUPPORT / RESISTANCE PRICE ACTION
+============================================================
+
+Use:
+
+- previous day high
+- previous day low
+- previous close
+- previous week high
+- previous week low
+- opening price
+- swing levels
+
+Detect:
+
+- rejection
+- breakout
+- breakdown
+- retest
+
+============================================================
+31. MEAN REVERSION
+============================================================
+
+Use:
+
+- VWAP distance
+- Bollinger Bands
+- ATR
+- z-score
+
+Only operate in appropriate sideways/low-trend regimes.
+
+Do not use mean reversion blindly during strong trends.
+
+============================================================
+32. OPTIONS PAPER STRATEGIES
+============================================================
+
+Support paper simulations for:
+
+- Long Call
+- Long Put
+- Bull Call Spread
+- Bear Put Spread
+- Covered Call simulation
+- Protective Put simulation
+
+Show:
+
+- premium
+- entry
+- exit
+- breakeven
+- maximum profit
+- maximum loss
+- expiry
+- Greeks
+- IV
+- theta
+
+Do not default to unlimited-risk naked option selling.
+
+============================================================
+33. SIGNAL ENGINE
+============================================================
+
+Every signal must contain:
+
+symbol
+timestamp
+strategy
+direction
+instrument
+entry_price
+stop_loss
+target
+quantity
+position_size
+risk_amount
+reward_amount
+risk_reward
+market_regime
+indicator_values
+reason
+status
+
+Example:
+
+Strategy:
+Breakout + Retest
+
+Direction:
+LONG
+
+Confirmation:
+- price above VWAP
+- breakout confirmed
+- volume above average
+- EMA structure bullish
+
+Never fabricate the numerical values.
+
+============================================================
+34. CENTRAL RISK ENGINE
+============================================================
+
+All strategies must pass through ONE central risk engine.
+
+Configurable:
+
+- starting capital
+- risk per trade
+- maximum daily loss
+- maximum trades per day
+- maximum concurrent positions
+- maximum position size
+- stop-loss
+- target
+- trailing stop
+
+Default:
+
+Maximum risk per trade = 1% of equity.
+
+For a ₹1,000 account:
+
+Maximum default risk = ₹10 per trade.
+
+Default daily loss limit:
+
+2% of equity.
+
+For ₹1,000:
+
+₹20 maximum daily loss.
+
+These values must be configurable.
+
+============================================================
+35. AFFORDABILITY
+============================================================
+
+The system must behave like a real small account.
+
+If the ₹1,000 paper account cannot afford a trade:
+
+DO NOT force the trade.
+
+Reject it.
+
+Example:
+
+"TRADE REJECTED — INSUFFICIENT VIRTUAL CAPITAL."
+
+Do not create artificial margin.
+
+Do not add funds.
+
+Do not borrow virtual money unless a specific margin simulation is explicitly configured and clearly shown.
+
+============================================================
+36. PAPER BROKER
+============================================================
+
+Create an internal simulated broker:
+
+PaperBroker
+
+Methods:
+
+place_paper_order()
+modify_paper_order()
+cancel_paper_order()
+get_paper_positions()
+get_paper_orders()
+get_paper_balance()
+
+These methods must operate ONLY on:
+
+- SQLite
+- internal application state
+
+They must NEVER call Upstox order APIs.
+
+============================================================
+37. PAPER TRADING ENGINE
+============================================================
+
+Support:
+
+- market orders
+- limit orders
+- stop-loss
+- target
+- trailing stop
+- partial exits
+- position management
+- order rejection
+- insufficient-funds rejection
+
+Simulate:
+
+- slippage
+- brokerage
+- exchange charges
+- STT
+- GST
+- stamp duty
+- SEBI charges
+
+All costs must be configurable because charges can change.
+
+Clearly label all results as simulated.
+
+============================================================
+38. LIVE PAPER TRADING
+============================================================
+
+When Upstox market data is enabled:
+
+Upstox
+→ live market data
+→ data normalization
+→ indicators
+→ market regime
+→ strategy engine
+→ risk engine
+→ PaperBroker
+→ SQLite
+→ paper portfolio
+
+The system must feel like a live trading terminal while remaining 100% simulated.
+
+NO real order is ever sent to Upstox.
+
+============================================================
+39. OPTION PAPER TRADING
+============================================================
+
+Use actual option market prices when available.
+
+For option positions consider:
+
+- premium
+- lot size
+- expiry
+- underlying price
+- IV
+- Greeks
+- theta
+- time decay
+
+Do NOT assume:
+
+option P&L = underlying movement
+
+If historical option data is unavailable:
+
+do not fabricate it.
+
+Mark the result:
+
+"INSUFFICIENT OPTION DATA."
+
+============================================================
+40. BACKTESTING ENGINE
+============================================================
+
+Build a robust event-driven backtester.
+
+Requirements:
+
+- no look-ahead bias
+- no future candle leakage
+- realistic execution
+- configurable slippage
+- configurable transaction costs
+- trading hours
+- position sizing
+- stop-loss
+- target
+- trailing stop
+- partial exits
+
+Metrics:
+
+- total trades
+- winning trades
+- losing trades
+- win rate
+- average win
+- average loss
+- expectancy
+- profit factor
+- gross profit
+- gross loss
+- net P&L
+- maximum drawdown
+- Sharpe ratio
+- Sortino ratio
+- average trade
+- largest win
+- largest loss
+- consecutive wins
+- consecutive losses
+- monthly returns
+- yearly returns
+
+============================================================
+41. NO LOOK-AHEAD BIAS
+============================================================
+
+This is a critical requirement.
+
+The system must never use future information to make an earlier trading decision.
+
+For every historical candle:
+
+Only information that would have been available at that moment may be used.
+
+Create automated tests specifically designed to detect:
+
+- future-candle leakage
+- future close usage
+- future volume usage
+- future indicator values
+- future option data leakage
+- future regime information
+
+============================================================
+42. WALK-FORWARD TESTING
+============================================================
+
+Implement:
+
+- training period
+- validation period
+- test period
+- walk-forward analysis
+
+Show separately:
+
+In-sample performance
+Out-of-sample performance
+Walk-forward performance
+
+Warn when:
+
+- performance collapses out-of-sample
+- there are too few trades
+- results are unstable
+- strategy is over-optimized
+
+============================================================
+43. HISTORICAL MARKET STUDY
+============================================================
+
+Create a research engine capable of answering questions from actual stored historical data.
+
+Examples:
+
+- How often does NIFTY break the first 15-minute range?
+- How often does a breakout retest succeed?
+- Which strategy works best during trending markets?
+- Which strategy performs poorly during sideways markets?
+- What happens after Bollinger squeezes?
+- Does VWAP improve breakout performance?
+- Which time of day has the best expectancy?
+- Which time of day performs worst?
+- How does volume affect breakout success?
+- How does expiry day behave?
+- What happens after previous-day-high breakout?
+- What happens after previous-day-low breakdown?
+- How does volatility affect option-buying strategies?
+
+Every answer must come from actual data.
+
+Never fabricate statistics.
+
+============================================================
+44. STRATEGY COMPARISON
+============================================================
+
+Compare:
+
+- Box Trading
+- Breakout
+- Breakout + Retest
+- Trend Following
+- Pullback
+- VWAP
+- Bollinger Bands
+- ORB
+- Momentum
+- Mean Reversion
+- Options strategies
+
+Compare:
+
+- win rate
+- expectancy
+- profit factor
+- net P&L
+- maximum drawdown
+- average trade
+- number of trades
+- risk-adjusted performance
+
+Also compare by:
+
+- market regime
+- time of day
+- instrument
+- weekday
+- volatility
+
+============================================================
+45. HISTORICAL REPLAY
+============================================================
+
+Create a historical replay mode.
+
+User selects:
+
+- symbol
+- date
+- timeframe
+- starting capital
+
+The market then replays candle-by-candle as though it were live.
+
+Show:
+
+- current candle
+- indicators
+- strategy signals
+- paper orders
+- positions
+- P&L
+- account balance
+
+Do not allow future candles to influence current decisions.
+
+============================================================
+46. TRADE JOURNAL
+============================================================
+
+Automatically record every paper trade.
+
+Store:
+
+- entry
+- exit
+- strategy
+- market regime
+- indicators
+- reason
+- stop-loss
+- target
+- quantity
+- P&L
+- holding time
+- result
+- notes
+
+Analyze:
+
+- best strategy
+- worst strategy
+- best trading time
+- worst trading time
+- common losing conditions
+- common mistakes
+- average holding period
+
+============================================================
+47. PAPER-ACCOUNT DASHBOARD
+============================================================
+
+Display clearly:
+
+INITIAL CAPITAL
+₹1,000
+
+CURRENT CASH
+₹X
+
+CURRENT EQUITY
+₹X
+
+REALIZED P&L
+₹X
+
+UNREALIZED P&L
+₹X
+
+TOTAL COSTS
+₹X
+
+MAXIMUM DRAWDOWN
+X%
+
+TRADES
+X
+
+WIN RATE
+X%
+
+PROFIT FACTOR
+X
+
+The initial capital must remain displayed separately.
+
+Never replace:
+
+Initial Capital: ₹1,000
+
+with:
+
+Current Equity: ₹1,500
+
+If the account reaches ₹1,500, it must show:
+
+Initial Capital: ₹1,000
+Current Equity: ₹1,500
+Net P&L: +₹500
+
+The ₹500 must be completely explainable by trading results.
+
+============================================================
+48. ZERO-CAPITAL CONDITION
+============================================================
+
+If the paper account reaches ₹0 or the configured minimum allowed level:
+
+STOP NEW PAPER TRADES.
+
+Display:
+
+"ACCOUNT CAPITAL EXHAUSTED — PAPER TRADING HALTED."
+
+Never automatically add funds.
+
+The user must create a new paper account to restart.
+
+============================================================
+49. MARKET DASHBOARD
+============================================================
+
+Create a professional dashboard showing:
+
+- NIFTY
+- BANK NIFTY
+- selected symbol
+- current market regime
+- candlestick chart
+- VWAP
+- EMA
+- Bollinger Bands
+- volume
+- support
+- resistance
+- active signals
+- paper positions
+- P&L
+- risk remaining
+
+============================================================
+50. STRATEGY DASHBOARD
+============================================================
+
+Show:
+
+strategy
+signal
+market regime
+entry
+SL
+target
+risk/reward
+number of historical trades
+win rate
+expectancy
+P&L
+drawdown
+
+============================================================
+51. BACKTEST DASHBOARD
+============================================================
+
+Allow:
+
+- symbol selection
+- timeframe
+- date range
+- strategy
+- strategy parameters
+- initial capital
+- risk parameters
+- transaction costs
+- slippage
+
+Display:
+
+- equity curve
+- drawdown curve
+- P&L
+- trade distribution
+- monthly returns
+- statistics
+- trade list
+
+============================================================
+52. RESEARCH DASHBOARD
+============================================================
+
+Include:
+
+- historical studies
+- regime analysis
+- time-of-day analysis
+- strategy comparison
+- volatility analysis
+- breakout statistics
+- support/resistance statistics
+- VWAP statistics
+- Bollinger statistics
+
+============================================================
+53. ALERTS
+============================================================
+
+Create paper-only alerts for:
+
+- breakout
+- breakdown
+- VWAP cross
+- Bollinger squeeze
+- market-regime change
+- support/resistance test
+- strategy signal
+- stop-loss
+- target
+- daily risk limit
+
+Alerts must NEVER place trades.
+
+============================================================
+54. OPTIONAL QWEN AI INTEGRATION
+============================================================
+
+The system may optionally integrate a locally hosted Qwen model.
+
+The AI layer is OPTIONAL.
+
+The entire trading system must work without AI.
+
+Do NOT require any paid AI API.
+
+Possible local runtimes:
+
+- Ollama
+- llama.cpp
+- vLLM
+- another compatible local inference server
+
+Do not make a specific runtime mandatory.
+
+Create:
+
+AIProvider
+
+Implement:
+
+NoAIProvider
+LocalQwenProvider
+
+============================================================
+55. QWEN ROLE
+============================================================
+
+Qwen may be used for:
+
+- trade-journal analysis
+- backtest-result explanation
+- strategy comparison
+- market-regime explanation
+- recurring trading mistakes
+- historical research summaries
+- explaining why a paper signal occurred
+- natural-language queries over stored data
+- generating research hypotheses
+- reviewing strategy performance
+- identifying unusual statistical behaviour
+
+Qwen must NOT:
+
+- place trades
+- send Upstox orders
+- modify paper account balance
+- create market prices
+- fabricate historical data
+- override risk management
+- override deterministic strategy rules
+- bypass PaperBroker
+- change initial capital
+- execute financial transactions
+
+============================================================
+56. QWEN MUST NEVER BE A PRICE SOURCE
+============================================================
+
+If Qwen says:
+
+"NIFTY is currently 25,400"
+
+the system must NOT accept this as market data.
+
+The application must retrieve actual market data from:
+
+MarketDataProvider
+
+Qwen can analyze market data.
+
+Qwen cannot create market data.
+
+============================================================
+57. AI / TRADING SEPARATION
+============================================================
+
+Keep these completely separate:
+
+DETERMINISTIC TRADING ENGINE:
+
+Market data
+→ Indicators
+→ Market structure
+→ Market regime
+→ Strategy
+→ Risk engine
+→ PaperBroker
+
+AI ANALYSIS:
+
+Stored data
+→ Qwen
+→ Explanation
+
+Qwen may COMMENT on a signal.
+
+Qwen cannot create or execute a paper order.
+
+============================================================
+58. AI FAILURE HANDLING
+============================================================
+
+If Qwen is unavailable:
+
+- trading continues
+- indicators continue
+- strategies continue
+- paper trading continues
+- backtesting continues
+- risk management continues
+
+AI must never be a dependency of the trading engine.
+
+============================================================
+59. AI AUDIT LOG
+============================================================
+
+Store:
+
+timestamp
+model
+analysis purpose
+data snapshot identifier
+response
+
+Never allow an AI response to directly modify financial state.
+
+============================================================
+60. ACCOUNTING AUDIT
+============================================================
+
+Provide an ACCOUNT LEDGER screen.
+
+The user must be able to trace:
+
+Initial ₹1,000
+→ Trade 1
+→ P&L
+→ costs
+→ Trade 2
+→ P&L
+→ current equity
+
+Every rupee must be explainable.
+
+============================================================
+61. FRONTEND
+============================================================
+
+Build a clean professional interface.
+
+Pages:
+
+1. Dashboard
+2. Live Paper Trading
+3. Paper Portfolio
+4. Strategies
+5. Backtesting
+6. Historical Research
+7. Historical Replay
+8. Options/F&O
+9. Trade Journal
+10. Account Ledger
+11. Risk Dashboard
+12. Settings
+13. Data Management
+14. AI Analysis
+
+Clearly display:
+
+PAPER TRADING
+SIMULATED CAPITAL
+NO REAL ORDERS
+
+============================================================
+62. DATA MANAGEMENT
+============================================================
+
+Create a UI for:
+
+- importing CSV
+- importing Parquet
+- validating data
+- viewing data coverage
+- checking missing candles
+- checking duplicates
+- viewing symbols
+- viewing date ranges
+- viewing timeframes
+- deleting/importing datasets
+
+Never silently modify data.
+
+============================================================
+63. SECURITY
+============================================================
+
+Never store API secrets in source code.
+
+Use environment variables.
+
+Do not expose secrets in frontend code.
+
+Do not log secrets.
+
+Upstox credentials must be stored securely.
+
+Never include order-placement functionality.
+
+============================================================
+64. PROJECT STRUCTURE
+============================================================
+
+Use a clean modular structure similar to:
+
+/backend
+    /app
+        /api
+        /core
+        /database
+        /models
+        /schemas
+        /data
+            /providers
+        /indicators
+        /market_structure
+        /regime
+        /strategies
+        /signals
+        /risk
+        /paper_trading
+        /backtesting
+        /options
+        /research
+        /journal
+        /alerts
+        /ai
+        /services
+
+/frontend
+    /src
+        /components
+        /pages
+        /charts
+        /hooks
+        /services
+        /types
+
+/data
+    trading.db
+    /imports
+    /exports
+
+/tests
+
+/docs
+
+============================================================
+65. TESTING
+============================================================
+
+Create automated tests for:
+
+- indicators
+- market structure
+- regime detection
+- strategies
+- position sizing
+- P&L
+- option P&L
+- Greeks
+- expiry
+- paper orders
+- paper positions
+- accounting
+- reconciliation
+- risk management
+- historical replay
+- backtesting
+- data validation
+- Upstox data adapter
+- Qwen provider
+
+Especially test:
+
+NO FUTURE DATA.
+
+Create tests specifically designed to detect look-ahead bias.
+
+Also test:
+
+STARTING CAPITAL = ₹1,000
+
+must remain:
+
+₹1,000
+
+unless changed by legitimate trading P&L/costs.
+
+============================================================
+66. DEVELOPMENT PHASES
+============================================================
+
+Build incrementally.
+
+PHASE 1:
+
+- project setup
+- SQLite
+- database models
+- CSV/Parquet import
+- data validation
+- candle chart
+- ₹1,000 paper account
+- immutable account ledger
+
+PHASE 2:
+
+Indicators:
+
+- EMA
+- SMA
+- VWAP
+- Bollinger
+- RSI
+- MACD
+- ATR
+- ADX
+- volume
+- market structure
+- support/resistance
+
+Strategies:
+
+- Box
+- Breakout
+- Breakout + Retest
+- Trend
+- Pullback
+- VWAP
+- Bollinger
+- ORB
+- Momentum
+- Mean Reversion
+
+PHASE 3:
+
+- backtesting engine
+- risk engine
+- performance metrics
+- trade journal
+- accounting reconciliation
+
+PHASE 4:
+
+- historical replay
+- paper trading
+- paper portfolio
+- alerts
+
+PHASE 5:
+
+- F&O/options
+- option chain
+- Greeks
+- expiry
+- option backtesting
+
+PHASE 6:
+
+- Upstox market-data adapter
+- live market-data paper trading
+
+PHASE 7:
+
+- historical research dashboard
+- regime analysis
+- strategy comparison
+- walk-forward testing
+
+PHASE 8:
+
+- optional local Qwen integration
+
+PHASE 9:
+
+- extensive testing
+- optimization
+- security
+- documentation
+
+============================================================
+67. DEVELOPMENT PROCESS
+============================================================
+
+Do NOT build the entire application as one giant file.
+
+Build modularly.
+
+After each phase:
+
+1. Implement.
+2. Run tests.
+3. Fix errors.
+4. Explain what was built.
+5. Explain how to run it.
+6. Show test results.
+7. Explain remaining work.
+8. Only then move to the next phase.
+
+Do not skip testing.
+
+============================================================
+68. NO FAKE DATA
+============================================================
+
+During development, if test data is needed:
+
+Clearly label it as:
+
+TEST DATA
+
+Never present test data as:
+
+LIVE MARKET DATA
+HISTORICAL MARKET DATA
+REAL MARKET DATA
+
+Synthetic data may be used only for software tests and must be explicitly identified.
+
+============================================================
+69. NO FABRICATED PERFORMANCE
+============================================================
+
+Never say:
+
+"Strategy makes 80% profit"
+
+unless the system has actually calculated that result from real imported/test datasets and clearly labels the dataset and test period.
+
+Never fabricate:
+
+- win rate
+- profit
+- drawdown
+- Sharpe
+- expectancy
+- historical statistics
+
+============================================================
+70. SMALL-ACCOUNT REALISM
+============================================================
+
+The ₹1,000 account is intentionally small.
+
+The system must show when a strategy cannot practically trade a particular instrument with ₹1,000.
+
+For example:
+
+If a position requires more capital than available:
+
+TRADE REJECTED.
+
+Do not artificially scale down quantities if the actual instrument requires a specific lot size.
+
+For options/futures:
+
+respect the actual contract lot size available in the data/configuration.
+
+============================================================
+71. PAPER ACCOUNT EXAMPLE
+============================================================
+
+Example only:
+
+Starting capital:
+
+₹1,000
+
+Paper trade:
+
+Buy an option at actual market price ₹8
+
+Lot size:
+
+75
+
+Position cost:
+
+₹600
+
+Remaining cash:
+
+₹400
+
+If later the actual market price becomes ₹12:
+
+Gross P&L:
+
+(₹12 - ₹8) × 75
+= ₹300
+
+After applicable simulated costs:
+
+Final equity might be approximately ₹1,XXX.
+
+The exact result must be calculated from actual market data and configured charges.
+
+Do NOT hard-code this example into the trading engine.
+
+============================================================
+72. FINAL SYSTEM ARCHITECTURE
+============================================================
+
+The intended architecture is:
+
+                 ┌──────────────────────┐
+                 │     UPSTOX API       │
+                 │   MARKET DATA ONLY   │
+                 └──────────┬───────────┘
+                            │
+                            ▼
+                 ┌──────────────────────┐
+                 │ Market Data Provider │
+                 └──────────┬───────────┘
+                            │
+                            ▼
+                 ┌──────────────────────┐
+                 │ Data Normalization   │
+                 └──────────┬───────────┘
+                            │
+                            ▼
+             ┌───────────────────────────────┐
+             │ Indicators / Market Structure │
+             └──────────────┬────────────────┘
+                            │
+                            ▼
+                 ┌──────────────────────┐
+                 │  Market Regime       │
+                 └──────────┬───────────┘
+                            │
+                            ▼
+                 ┌──────────────────────┐
+                 │  Strategy Engine      │
+                 └──────────┬───────────┘
+                            │
+                            ▼
+                 ┌──────────────────────┐
+                 │    Risk Engine        │
+                 └──────────┬───────────┘
+                            │
+                            ▼
+                 ┌──────────────────────┐
+                 │     PaperBroker       │
+                 │    SIMULATION ONLY    │
+                 └──────────┬───────────┘
+                            │
+                            ▼
+                 ┌──────────────────────┐
+                 │       SQLite          │
+                 │  Account / Trades /   │
+                 │  Data / Research      │
+                 └──────────┬───────────┘
+                            │
+             ┌──────────────┴──────────────┐
+             ▼                             ▼
+    ┌─────────────────┐          ┌─────────────────┐
+    │ Paper Portfolio │          │ Research / AI   │
+    └─────────────────┘          └────────┬────────┘
+                                          │
+                                          ▼
+                                   ┌─────────────┐
+                                   │ Qwen (LOCAL)│
+                                   │ OPTIONAL    │
+                                   └─────────────┘
+
+IMPORTANT:
+
+Qwen cannot execute trades.
+
+Upstox cannot execute trades.
+
+Only PaperBroker can execute paper trades.
+
+PaperBroker operates only inside our application.
+
+============================================================
+73. FINAL ACCEPTANCE CRITERIA
+============================================================
+
+The system is considered successful only when:
+
+1. I can create a paper account with exactly ₹1,000.
+2. The initial capital is immutable.
+3. The system never adds funds automatically.
+4. The system never creates market prices.
+5. All execution prices come from valid market data.
+6. Upstox can provide live market data.
+7. Upstox is never used for order placement.
+8. All trades happen only inside PaperBroker.
+9. All trades are stored in SQLite.
+10. Every rupee is auditable.
+11. P&L is calculated from actual simulated trades.
+12. No future information enters historical backtests.
+13. Box Trading works.
+14. Breakout works.
+15. Breakout + Retest works.
+16. Trend Following works.
+17. Pullback works.
+18. VWAP works.
+19. Bollinger Bands work.
+20. ORB works.
+21. Momentum works.
+22. Mean Reversion works.
+23. Indicators are configurable.
+24. Market regimes are detected.
+25. Historical research works.
+26. Backtesting works.
+27. Walk-forward testing works.
+28. Historical replay works.
+29. F&O/options paper trading works where sufficient data exists.
+30. Risk management works.
+31. Trade journal works.
+32. Account reconciliation works.
+33. Optional Qwen analysis works without controlling execution.
+34. The entire system can operate without paid tools.
+35. The entire system can operate without Qwen.
+36. The entire system can operate without Upstox using imported historical data.
+37. The system never performs real trading.
+
+============================================================
+74. FIRST TASK
+============================================================
+
+DO NOT immediately generate the entire application.
+
+First provide:
+
+A. Complete system architecture
+B. Project folder structure
+C. SQLite database schema
+D. Entity relationships
+E. Data-provider architecture
+F. Strategy architecture
+G. Risk-management architecture
+H. PaperBroker architecture
+I. Backtesting architecture
+J. Historical-replay architecture
+K. Upstox market-data integration architecture
+L. Qwen integration architecture
+M. Security model
+N. Testing strategy
+O. Free/open-source dependency list
+P. Development roadmap
+Q. Exact local setup commands
+
+Then begin implementing PHASE 1.
+
+Before moving to each subsequent phase:
+
+- run tests
+- fix errors
+- verify accounting
+- verify no-look-ahead behavior
+- verify no real trading capability
+- explain what was completed
+
+The application must remain PAPER TRADING ONLY throughout the entire project.
+
+NEVER implement real order execution.
+NEVER use Upstox order APIs.
+NEVER fabricate prices.
+NEVER fabricate historical data.
+NEVER fabricate performance.
+NEVER automatically add capital.
+NEVER allow AI to control execution.

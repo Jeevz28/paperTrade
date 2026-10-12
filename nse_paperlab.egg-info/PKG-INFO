@@ -1,0 +1,18 @@
+Metadata-Version: 2.4
+Name: nse-paperlab
+Version: 0.6.1
+Summary: Local-only Indian market research and paper execution
+Requires-Python: >=3.11
+Requires-Dist: python-dotenv<2,>=1
+Requires-Dist: fastapi<1,>=0.115
+Requires-Dist: uvicorn<1,>=0.30
+Requires-Dist: python-multipart<1,>=0.0.20
+Requires-Dist: pandas<3,>=2.2
+Requires-Dist: numpy<3,>=2
+Requires-Dist: scipy<2,>=1.14
+Requires-Dist: httpx<1,>=0.28
+Requires-Dist: pyarrow<26,>=18
+Requires-Dist: websockets<16,>=15
+Requires-Dist: protobuf<7,>=6.33.5
+Provides-Extra: test
+Requires-Dist: pytest<10,>=8; extra == "test"

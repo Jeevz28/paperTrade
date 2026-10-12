@@ -1,0 +1,14 @@
+python-dotenv<2,>=1
+fastapi<1,>=0.115
+uvicorn<1,>=0.30
+python-multipart<1,>=0.0.20
+pandas<3,>=2.2
+numpy<3,>=2
+scipy<2,>=1.14
+httpx<1,>=0.28
+pyarrow<26,>=18
+websockets<16,>=15
+protobuf<7,>=6.33.5
+
+[test]
+pytest<10,>=8

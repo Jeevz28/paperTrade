@@ -1,0 +1,14 @@
+CREATE TABLE IF NOT EXISTS activity_events(id INTEGER PRIMARY KEY, timestamp TEXT NOT NULL, account_id INTEGER REFERENCES paper_accounts(id), category TEXT NOT NULL, action TEXT NOT NULL, details TEXT NOT NULL);
+CREATE INDEX IF NOT EXISTS activity_recent ON activity_events(id,account_id);
+CREATE TABLE IF NOT EXISTS automation_rules(id INTEGER PRIMARY KEY, account_id INTEGER NOT NULL UNIQUE REFERENCES paper_accounts(id), instrument_id INTEGER NOT NULL REFERENCES instruments(id), strategy TEXT NOT NULL, enabled INTEGER NOT NULL DEFAULT 0, max_quantity INTEGER NOT NULL CHECK(max_quantity>0), parameters TEXT NOT NULL, created_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS automation_decisions(id INTEGER PRIMARY KEY, rule_id INTEGER NOT NULL REFERENCES automation_rules(id), timestamp TEXT NOT NULL, outcome TEXT NOT NULL, details TEXT NOT NULL, UNIQUE(rule_id,timestamp));
+CREATE TABLE IF NOT EXISTS stream_bars(id INTEGER PRIMARY KEY,instrument_id INTEGER NOT NULL REFERENCES instruments(id),session TEXT NOT NULL,timestamp TEXT NOT NULL,available_at TEXT NOT NULL,open INTEGER NOT NULL,high INTEGER NOT NULL,low INTEGER NOT NULL,close INTEGER NOT NULL,volume INTEGER NOT NULL,UNIQUE(instrument_id,session,timestamp));
+CREATE TABLE IF NOT EXISTS delivery_evidence(id INTEGER PRIMARY KEY,instrument_id INTEGER NOT NULL REFERENCES instruments(id),underlying_id INTEGER NOT NULL REFERENCES instruments(id),effective_at TEXT NOT NULL,available_at TEXT NOT NULL,delivery_at TEXT NOT NULL,reference_price INTEGER NOT NULL CHECK(reference_price>0),fees INTEGER NOT NULL CHECK(fees>=0),source TEXT NOT NULL,UNIQUE(instrument_id,effective_at),CHECK(available_at>=effective_at AND delivery_at>=effective_at));
+CREATE TABLE IF NOT EXISTS delivery_obligations(id INTEGER PRIMARY KEY,basket_id INTEGER NOT NULL REFERENCES baskets(id),timestamp TEXT NOT NULL,status TEXT NOT NULL,details TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS basket_backtests(id INTEGER PRIMARY KEY,created_at TEXT NOT NULL,status TEXT NOT NULL,progress INTEGER NOT NULL DEFAULT 0,parameters TEXT NOT NULL,result TEXT,error TEXT);
+CREATE TRIGGER IF NOT EXISTS delivery_evidence_no_update BEFORE UPDATE ON delivery_evidence BEGIN SELECT RAISE(ABORT,'Evidence immutable'); END;
+CREATE TRIGGER IF NOT EXISTS delivery_evidence_no_delete BEFORE DELETE ON delivery_evidence BEGIN SELECT RAISE(ABORT,'Evidence immutable'); END;
+CREATE TRIGGER IF NOT EXISTS activity_no_update BEFORE UPDATE ON activity_events BEGIN SELECT RAISE(ABORT,'Activity immutable'); END;
+CREATE TRIGGER IF NOT EXISTS activity_no_delete BEFORE DELETE ON activity_events BEGIN SELECT RAISE(ABORT,'Activity immutable'); END;
+INSERT OR IGNORE INTO schema_migrations VALUES(3,strftime('%Y-%m-%dT%H:%M:%f+00:00','now'));
+PRAGMA user_version=3;
