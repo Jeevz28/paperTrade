@@ -24,7 +24,7 @@ def restore_copy(source, destination):
     with sqlite3.connect(f"file:{source}?mode=ro", uri=True) as old:
         if old.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
             raise DomainError("Backup is corrupt")
-        if old.execute("PRAGMA user_version").fetchone()[0] > 7:
+        if old.execute("PRAGMA user_version").fetchone()[0] > 8:
             raise DomainError("Backup version is newer than this application")
         destination.parent.mkdir(parents=True, exist_ok=True)
         with sqlite3.connect(destination) as new:

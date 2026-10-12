@@ -298,6 +298,11 @@ class DerivativeBroker:
             if state.get('halted'):
                 raise DomainError('Managed account drawdown stop reached')
             risk['risk_pct'] *= state.get('risk_scale',1)
+            if insts[0]['kind'] in ('CALL','PUT') and b.get('stop_paise') and prices[0] <= b['stop_paise']:
+                raise DomainError('Observed option price crossed planned stop before entry')
+            ticket = c.execute('SELECT target_paise FROM fno_tickets WHERE basket_id=?',(b.get('id'),)).fetchone()
+            if ticket and insts[0]['kind'] in ('CALL','PUT') and prices[0]>=ticket['target_paise']:
+                raise DomainError('Observed option price crossed planned target before entry')
         if c.execute(
             "SELECT 1 FROM paper_positions WHERE account_id=?", (a["id"],)
         ).fetchone():

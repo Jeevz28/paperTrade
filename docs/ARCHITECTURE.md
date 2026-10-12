@@ -1,3 +1,11 @@
+# Current runtime (0.8)
+
+`run.py` loads `.env` → `FnoRuntime` creates/resumes environment-owned account → `FnoAuto` resolves contracts and starts `MarketStream`. A single coordinator evaluates `AgentTeam` messages on completed bars, then the deterministic derivative broker performs lot/cash/risk checks and records quote-backed fills. AgentTeam reviews closed ledger-backed trades; evidence can veto future candidates. UI polls F&O status/chart endpoints. Public legacy APIs are filtered; legacy modules remain accounting/migration dependencies.
+
+SQLite retains market history, quotes, stream bars, agent messages, decision context, trade reviews, pending reservations and the existing immutable cash ledger. Only broker accounting changes capital; agents cannot deposit or reset. Emergency pause is persisted. No broker order adapter and no LLM trading privileges.
+
+Previous architecture notes follow for internal modules:
+
 # System Architecture
 
 ## Boundaries

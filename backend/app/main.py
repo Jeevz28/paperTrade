@@ -4,6 +4,7 @@ from pathlib import Path
 import io
 import json
 import os
+import re
 import sqlite3
 import threading
 from urllib.parse import urlparse
@@ -60,8 +61,10 @@ class PayoffInput(Strict):
     spots: list[float] = Field(min_length=1, max_length=1000)
 
 
-def create_app(db_path=None, policy=None):
-    db = Database(db_path or os.getenv("PAPERLAB_DB", "data/trading.db"))
+def create_app(db_path=None, policy=None, *, legacy_api=False, autostart=True):
+    from .hosting import Hosting
+    hosting = Hosting(db_path)
+    db = Database(hosting.db_path)
     policy = policy or Policy.environment()
     broker = PaperBroker(db)
     provider = UpstoxProvider(policy)
@@ -88,22 +91,34 @@ def create_app(db_path=None, policy=None):
 
     from .fno import FnoAuto, register_fno
     fno = FnoAuto(db, provider, stream, lock)
+    from .fno_runtime import FnoRuntime
+    runtime = FnoRuntime(fno)
 
     @asynccontextmanager
     async def lifespan(app):
-        yield
-        fno.shutdown()
-        auto_paper.shutdown()
-        replay.stop()
-        stream.stop()
-        jobs.shutdown()
-        learning.shutdown()
+        hosting.acquire()
+        try:
+            if autostart and not legacy_api:
+                runtime.boot()
+            yield
+        finally:
+            try:
+                runtime.shutdown()
+                fno.shutdown()
+                auto_paper.shutdown()
+                replay.stop()
+                stream.stop()
+                jobs.shutdown()
+                learning.shutdown()
+            finally:
+                hosting.release()
+
 
     app = FastAPI(
         title="NSE PaperLab",
-        version="0.7.0",
+        version="0.8.1",
         lifespan=lifespan,
-        description="Local paper simulation and research. No real-order API.",
+        description="Private paper simulation. No real-order API.",
     )
     app.state.db = db
     app.state.broker = broker
@@ -119,15 +134,12 @@ def create_app(db_path=None, policy=None):
 
     @app.middleware("http")
     async def local_only(request: Request, call_next):
-        host = request.url.hostname
-        origin = request.headers.get("origin")
-        if host not in ("localhost", "127.0.0.1", "testserver") or (
-            origin and urlparse(origin).hostname not in ("localhost", "127.0.0.1")
-        ):
-            return JSONResponse(
-                {"detail": "Local-only application; untrusted host or origin"},
-                status_code=403,
-            )
+        path=request.url.path
+        if not legacy_api and path.startswith('/api/') and path not in ('/api/health','/api/fno-auto','/api/fno-auto/chart') and not re.fullmatch(r'/api/fno-auto/[1-9][0-9]*/(start|pause|close)',path):
+            return JSONResponse({'detail':'This release exposes live F&O paper trading only'},status_code=404)
+        blocked = hosting.check(request)
+        if blocked is not None:
+            return blocked
         if (
             request.method not in ("GET", "HEAD", "OPTIONS")
             and request.headers.get("x-paperlab") != "local"
@@ -196,7 +208,7 @@ def create_app(db_path=None, policy=None):
             "data_cutoff": policy.cutoff().isoformat(),
             "upstox_enabled": os.getenv("UPSTOX_ENABLED", "false") == "true",
             "ai_enabled": os.getenv("QWEN_ENABLED", "false") == "true",
-            "version": "0.7.0",
+            "version": "0.8.1",
         }
 
     @app.get("/api/instruments")
@@ -649,6 +661,15 @@ def create_app(db_path=None, policy=None):
         def index():
             return FileResponse(dist / "index.html")
 
+    if not legacy_api:
+        allowed = {'/api/health','/api/fno-auto','/api/fno-auto/chart','/api/fno-auto/{account}/start','/api/fno-auto/{account}/pause','/api/fno-auto/{account}/close'}
+        app.router.routes[:] = [r for r in app.router.routes if not getattr(r,'path','').startswith('/api/') or r.path in allowed]
+        original_openapi=app.openapi
+        def focused_schema():
+            schema=original_openapi()
+            schema['paths']={p:v for p,v in schema.get('paths',{}).items() if p in allowed or not p.startswith('/api/')}
+            return schema
+        app.openapi=focused_schema
     return app
 
 

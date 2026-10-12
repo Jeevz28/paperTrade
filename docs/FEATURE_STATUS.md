@@ -1,3 +1,13 @@
+## v0.8.1 hosting update
+
+Railway-compatible Docker deployment, HTTPS Basic authentication, persistent-volume validation and single-worker protection are included. See [RAILWAY.md](RAILWAY.md). Hosting has not been deployed to a Railway account here.
+
+# Current product: 0.8 F&O-only
+
+The active UI is one live F&O dashboard. The trading input is initial capital from `.env`; default NIFTY index account/feed startup is automatic. Live charts, strategy-specific stops, explicit balances, persisted market/decision evidence and cooperating rule-based agents are included. Post-trade reviews support evidence-based exclusions, not neural retraining or discovery of arbitrary strategies. Public CSV/replay/backtest/manual-account endpoints and menus are removed. See [LIVE_FNO.md](LIVE_FNO.md) for the authoritative current scope.
+
+The remainder below is historical implementation inventory, retained for code migration and regression context. It does not describe the current public app menu.
+
 ## v0.7.0 managed intraday F&O
 
 Default NIFTY 50 **index** F&O account, separate eligible stock F&O accounts, automatic master lookup/near-expiry contract discovery, prior-minute history warm-up, bullish/bearish regime rules, observed-quote long options and signed futures, product-specific simulation costs, full-lot/capital/risk checks, pause/loss/drawdown controls and 15:15 IST exit requests. Orders, open positions, P&L and completed trades are visible on one home screen. See FNO_AUTO.md for limits. Authenticated Upstox acceptance remains untested; this release does not add live multi-leg execution or AI training.

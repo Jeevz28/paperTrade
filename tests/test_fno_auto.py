@@ -192,5 +192,5 @@ def test_additive_schema_upgrade_preserves_accounts(rig):
     m,stream,a,clock,quote=rig
     with m.db.connect(write=True) as c:c.execute('PRAGMA user_version=6')
     upgraded=Database(m.db.path)
-    assert upgraded.rows('PRAGMA user_version')[0]['user_version']==7
+    assert upgraded.rows('PRAGMA user_version')[0]['user_version']==8
     assert PaperBroker(upgraded).snapshot(a)['initial_capital']==10000000

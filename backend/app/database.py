@@ -9,7 +9,7 @@ class Database:
         Path(self.path).parent.mkdir(parents=True, exist_ok=True)
         with self.connect() as db:
             version = db.execute("PRAGMA user_version").fetchone()[0]
-            if version > 7:
+            if version > 8:
                 raise RuntimeError("Database schema is newer than this application")
             db.executescript(Path(__file__).with_name("schema.sql").read_text())
             db.executescript(
@@ -20,6 +20,7 @@ class Database:
                 + Path(__file__).with_name("release5.sql").read_text()
                 + Path(__file__).with_name("release6.sql").read_text()
                 + Path(__file__).with_name("release7.sql").read_text()
+                + Path(__file__).with_name("release8.sql").read_text()
                 + "\nCOMMIT;"
             )
 

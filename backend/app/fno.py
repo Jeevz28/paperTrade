@@ -106,6 +106,9 @@ def signal_for(rows, excluded=()):
 class FnoAuto:
     def __init__(self, db, provider, stream, lock):
         self.db, self.provider, self.stream, self.lock = db, provider, stream, lock
+        from .agent_team import AgentTeam
+        self.team = AgentTeam(db)
+        self.shutting_down = False
         self.history = {}
         self.master = None
         self.master_day = None
@@ -221,6 +224,10 @@ class FnoAuto:
                 i=self.register(c,'FNO:'+m['key']+':'+m['expiry'],m['kind'],m['lot'],m['tick'],m['key'],m['label'],key,m['expiry'],m['strike'],s['market']=='STOCK')
                 c.execute('INSERT OR IGNORE INTO fno_contracts VALUES(?,?)',(account,i))
             c.execute('UPDATE fno_sessions SET underlying_id=?,prepared_day=? WHERE account_id=?',(underlying,today.isoformat(),account))
+        with self.db.connect(write=True) as c:
+            for r in history:
+                c.execute('INSERT OR IGNORE INTO market_history(instrument_id,timestamp,available_at,open,high,low,close,volume,source,recorded_at) VALUES(?,?,?,?,?,?,?,?,?,?)',
+                    (underlying,r['timestamp'],r['available_at'],r['open'],r['high'],r['low'],r['close'],r['volume'],'UPSTOX_MINUTE_HISTORY',now().isoformat()))
         self.history[account]=history
         self.state(account,status='READY',message='Contracts discovered. Waiting for fresh stream bars.',history_bars=len(history),reference_paise=reference)
 
@@ -242,6 +249,8 @@ class FnoAuto:
             self.pause(account)
             if not self.active(account):
                 self.prepare(account)
+            if self.shutting_down:
+                raise DomainError('Application is stopping')
             self.connect(account)
         except Exception as e:
             self.state(account,status='START_FAILED',message=str(e) if isinstance(e,DomainError) else 'Provider unavailable; retry Start')
@@ -249,13 +258,19 @@ class FnoAuto:
         with self.lock, self.db.connect(write=True) as c:
             c.execute('UPDATE fno_sessions SET enabled=? WHERE account_id=?',(0 if halted else 1,account))
         self.state(account,status='DRAWDOWN_STOP' if halted else 'WARMING_UP',message='Protection reconnected; new entries remain stopped.' if halted else 'Waiting for two completed live minutes; history supplies the indicator warm-up.')
+        self.ensure_worker()
+        record(self.db,'fno','STARTED',{'market':s['label']},account)
+
+    def ensure_worker(self):
+        if self.shutting_down: return
         if not self.thread or not self.thread.is_alive():
             self.stop_event.clear()
             self.thread=threading.Thread(target=self.loop,daemon=True,name='paperlab-fno')
             self.thread.start()
-        record(self.db,'fno','STARTED',{'market':s['label']},account)
 
     def connect(self, account):
+        if self.shutting_down:
+            raise DomainError("Application is stopping")
         # Shared feed, separate capital. Include paused accounts with open exposure.
         accounts={account}
         accounts.update(r['account_id'] for r in self.db.rows('SELECT account_id FROM fno_sessions WHERE enabled=1'))
@@ -330,6 +345,7 @@ class FnoAuto:
                 for bid, old in before.items():
                     new=self.db.rows('SELECT status,reason FROM baskets WHERE id=?',(bid,))[0]
                     if new['status'] != old:
+                        self.team.message(a,'execution',new['status'],'Paper order state updated from stored quote evidence.',{'basket_id':bid,'quote_id':quote_id,'price_paise':q['price_paise']})
                         record(self.db,'fno',new['status'],{'basket_id':bid,'price_paise':q['price_paise'],'reason':new['reason']},a)
 
     def loop(self):
@@ -357,6 +373,7 @@ class FnoAuto:
             if b['status']=='OPEN' and (local.hour*60+local.minute>=915 or timestamp(b['opened_at']).astimezone(IST).date()<local.date()):
                 DerivativeBroker(self.db).request_close(a,b['id'])
                 self.state(a,status='EXIT_PENDING',message='Intraday exit queued; awaiting a fresh contract quote.')
+        self.team.review_closed(a)
         snap=PaperBroker(self.db).snapshot(a,self.marks())
         if snap['equity_paise'] is not None:
             state['peak']=max(state.get('peak',snap['initial_capital']),snap['equity_paise'])
@@ -398,9 +415,9 @@ class FnoAuto:
         if len(rows)<60:
             self.state(a,status='WARMING_UP',message=f'{len(rows)} / 60 completed indicator bars.'); return
         excluded={k for k,v in state.get('excluded',{}).items() if timestamp(v)>now()}
-        sig=signal_for(rows,excluded)
+        sig=self.team.evaluate(a,rows,excluded)
         if not sig:
-            self.state(a,status='WAITING_FOR_SIGNAL',message='No eligible trend, breakout or range-reversal signal on this completed minute.'); return
+            self.state(a,status='WAITING_FOR_SIGNAL',strategy=None,message='No eligible trend, breakout or range-reversal signal on this completed minute.'); return
         self.queue(s,sig,last,snap)
 
     def queue(self, s, sig, last, snap):
@@ -420,9 +437,21 @@ class FnoAuto:
                 continue
             qty=i['lot_size']*(sig['direction'] if i['kind']=='FUTURE' else 1)
             direction=1 if qty>0 else -1
-            distance=max(i['tick_paise'],int(sig['atr']*1.5) if i['kind']=='FUTURE' else int(p*.25))
-            stop=(p-direction*distance)//i['tick_paise']*i['tick_paise']
-            target=(p+direction*distance*2)//i['tick_paise']*i['tick_paise']
+            factor=float(sig.get('stop_factor',1.5)); rr=float(sig.get('target_rr',2.0))
+            if i['kind']=='FUTURE':
+                distance=int(sig['atr']*factor); stop_basis='Underlying ATR × strategy factor'
+            else:
+                contract_rows=self.db.rows('SELECT * FROM stream_bars WHERE instrument_id=? ORDER BY timestamp DESC LIMIT 30',(i['id'],))[::-1]
+                atr=None
+                if len(contract_rows)>=15:
+                    changes=[max(r['high']-r['low'],abs(r['high']-contract_rows[n-1]['close']),abs(r['low']-contract_rows[n-1]['close'])) for n,r in enumerate(contract_rows) if n>0]
+                    atr=sum(changes[-14:])/14
+                fallback={'trend':.25,'breakout':.20,'range_reversal':.15}.get(sig['name'],.25)
+                distance=int(atr*factor) if atr and atr>0 else int(p*fallback)
+                stop_basis='Observed contract ATR × strategy factor' if atr and atr>0 else 'Strategy premium fallback; insufficient contract ATR history'
+            distance=max(i['tick_paise'],distance)
+            stop=int((p-direction*distance)//i['tick_paise']*i['tick_paise'])
+            target=int((p+direction*distance*rr)//i['tick_paise']*i['tick_paise'])
             if min(stop,target)<=0:
                 continue
             strategy='future' if i['kind']=='FUTURE' else ('long_call' if kind=='CALL' else 'long_put')
@@ -435,16 +464,21 @@ class FnoAuto:
                         (i['id'],now().isoformat(),now().isoformat(),(now()+timedelta(days=1)).isoformat(),margin,margin,'PAPER ASSUMPTION: 25% notional collateral; not broker margin'))
                 account=dict(c.execute('SELECT * FROM paper_accounts WHERE id=?',(a,)).fetchone())
                 try:
-                    broker._validate(c,account,dict(strategy=strategy,stop_paise=stop),[i],legs,[p],now().isoformat())
+                    debit,margin,fee=broker._validate(c,account,dict(strategy=strategy,stop_paise=stop),[i],legs,[p],now().isoformat())
                 except DomainError as e:
                     reasons.append(str(e)); continue
             b=broker.submit(a,strategy,legs,f'fno:{a}:{last}',stop,live=True)
             with self.db.connect(write=True) as c:
                 c.execute('INSERT INTO fno_tickets(basket_id,signal,signal_at,stop_paise,target_paise,expires_at) VALUES(?,?,?,?,?,?)',
                     (b['id'],sig['name'],last,stop,target,(now()+timedelta(seconds=90)).isoformat()))
+                c.execute('INSERT INTO fno_reservations VALUES(?,?,?,?)',(b['id'],debit,margin,fee))
+            self.team.record_decision(a,b['id'],{**sig,'stop_paise':stop,'target_paise':target,'entry_reference_paise':p,'stop_basis':stop_basis,'instrument_id':i['id']})
+            self.team.message(a,'risk','APPROVED','Full lot, capital, loss budget and estimated costs passed.',{'premium_paise':debit,'margin_paise':margin,'entry_cost_paise':fee,'stop_paise':stop,'target_paise':target})
+            self.team.message(a,'execution','QUEUED','Awaiting a subsequent fresh stream quote.',{'basket_id':b['id']})
             self.state(a,status='ORDER_QUEUED',message='Paper entry queued for a subsequent fresh contract quote.',strategy=sig['name'],regime=sig['regime'])
             record(self.db,'fno','ORDER_QUEUED',{'basket_id':b['id'],'contract':i['metadata_source'].split(' | ')[-1],'strategy':sig['name'],'quantity':qty},a)
             return
+        self.team.message(a,'risk','BLOCKED','; '.join(dict.fromkeys(reasons)) or 'No eligible near-the-money contract')
         self.state(a,status='BLOCKED',strategy=sig['name'],message='; '.join(dict.fromkeys(reasons)) or 'No eligible near-the-money contract. Waiting for a new signal.',
             detail='Full lots only. Long-option risk reserves the entire premium plus costs. Futures reserve 25% of notional as simulated collateral.')
 
@@ -459,7 +493,7 @@ class FnoAuto:
         for o in orders:
             leg=json.loads(o.pop('legs_json'))[0]
             inst=self.db.rows('SELECT * FROM instruments WHERE id=?',(leg['instrument_id'],))[0]
-            o.update(quantity=leg['quantity'],contract=inst['metadata_source'].split(' | ')[-1],kind=inst['kind'],expiry=inst['expiry'],lot_size=inst['lot_size'])
+            o.update(instrument_id=leg['instrument_id'],quantity=leg['quantity'],contract=inst['metadata_source'].split(' | ')[-1],kind=inst['kind'],expiry=inst['expiry'],lot_size=inst['lot_size'])
             events=self.db.rows('SELECT kind,timestamp,payload FROM basket_events WHERE basket_id=? ORDER BY id',(o['id'],))
             o['entry_paise']=next((json.loads(e['payload'])['legs'][0]['price'] for e in events if e['kind']=='BASKET_OPEN'),None)
             o['exit_paise']=next((json.loads(e['payload'])['legs'][0]['price'] for e in events if e['kind']=='BASKET_CLOSE'),None)
@@ -476,10 +510,48 @@ class FnoAuto:
         for i in contracts:
             i['price_paise']=self.marks().get(i['id'])
         return dict(sessions=sessions,selected_account=account,snapshot=snapshot,orders=orders,events=events,contracts=contracts,
+            runtime=getattr(getattr(self,'runtime_controller',None),'info',{'status':'READY','message':'Environment controller not started'}),
+            balances=self.balances(account,snapshot) if snapshot else None,
+            agent_team=self.team.status(account) if account else {'messages':[],'reviews':[],'candidates':[]},
             stream={'state':self.stream.state,'error':getattr(self.stream,'error',None),'last_message':getattr(self.stream,'last_received',None)},
             costs={'options':simulation_costs('CALL'),'futures':simulation_costs('FUTURE')})
 
+    def balances(self, account, snap=None):
+        snap=snap or PaperBroker(self.db).snapshot(account,self.marks())
+        reservations=self.db.rows("SELECT r.* FROM fno_reservations r JOIN baskets b ON b.id=r.basket_id WHERE b.account_id=? AND b.status='PENDING'",(account,))
+        pending=sum(r['premium']+r['margin']+r['estimated_fee'] for r in reservations)
+        return dict(initial_capital_paise=snap['initial_capital'],cash_paise=snap['cash_balance'],
+            available_cash_paise=snap['available_cash_paise']-pending,
+            premium_in_positions_paise=sum(p['book_cost'] for p in snap['basket_positions']),
+            margin_reserved_paise=snap['used_margin_paise'],pending_reserved_paise=pending,
+            costs_paise=snap['costs'],realized_net_pnl_paise=snap['realized_pnl']-snap['costs'],
+            unrealized_pnl_paise=snap['unrealized_pnl_paise'],equity_paise=snap['equity_paise'])
+
+    def chart(self, account=None, instrument_id=None):
+        if account is None:
+            sessions=self.db.rows("SELECT account_id FROM fno_sessions WHERE market='NIFTY'")
+            if not sessions: return dict(instrument_id=None,label='NIFTY 50',bars=[],forming=None,levels={},source='Waiting for market data')
+            account=sessions[0]['account_id']
+        s=self.session(account); i=instrument_id or s['underlying_id']
+        if not i: return dict(instrument_id=None,label=s['label'],bars=[],forming=None,levels={},source='Waiting for contract discovery')
+        if i!=s['underlying_id'] and not self.db.rows('SELECT 1 FROM fno_contracts WHERE account_id=? AND instrument_id=?',(account,i)):
+            raise DomainError('Chart instrument is outside this account')
+        inst=self.db.rows('SELECT * FROM instruments WHERE id=?',(i,))[0]
+        history=self.db.rows('SELECT * FROM market_history WHERE instrument_id=? ORDER BY timestamp DESC LIMIT 500',(i,))[::-1]
+        live=self.db.rows('SELECT * FROM stream_bars WHERE instrument_id=? ORDER BY timestamp DESC,id DESC LIMIT 500',(i,))[::-1]
+        merged={r['timestamp']:r for r in history}
+        merged.update({r['timestamp']:r for r in live})
+        bars=sorted(merged.values(),key=lambda r:r['timestamp'])[-300:]
+        forming=None; bar=self.stream.bars.get(i) if hasattr(self.stream,'bars') else None
+        if bar and i in self.marks():
+            forming=dict(timestamp=bar['bucket'].isoformat(),open=bar['open'],high=bar['high'],low=bar['low'],close=bar['close'],volume=max(0,bar['last_v']-bar['start_v']),complete=False)
+        levels={}
+        held=self.db.rows('SELECT p.basis_price,t.stop_paise,t.target_paise FROM basket_positions p JOIN baskets b ON b.id=p.basket_id JOIN fno_tickets t ON t.basket_id=b.id WHERE b.account_id=? AND p.instrument_id=?',(account,i))
+        if held: levels=dict(entry_paise=held[0]['basis_price'],stop_paise=held[0]['stop_paise'],target_paise=held[0]['target_paise'])
+        return dict(instrument_id=i,label=inst['metadata_source'].split(' | ')[-1],bars=bars,forming=forming,levels=levels,source='Stored completed minute bars; live forming candle is not used for decisions',strategy=json.loads(s['state']).get('strategy'))
+
     def shutdown(self):
+        self.shutting_down=True
         self.stop_event.set()
         if self.thread: self.thread.join(timeout=30)
 
@@ -490,14 +562,26 @@ def register_fno(app, manager):
     def status(account_id:int|None=None):
         with manager.lock:
             return manager.status(account_id)
+    @router.get('/chart')
+    def chart(account_id:int|None=None,instrument_id:int|None=None):
+        with manager.lock:
+            return manager.chart(account_id,instrument_id)
     @router.get('/stocks')
     def stocks(): return manager.stocks()
     @router.post('/setup')
     def setup(v:Setup): return manager.setup(v)
     @router.post('/{account}/start')
-    def start(account:int): manager.start(account); return {'started':True}
+    def start(account:int):
+        controller=getattr(manager,'runtime_controller',manager)
+        (controller.resume(account) if hasattr(controller,'resume') else manager.start(account))
+        return {'started':True}
     @router.post('/{account}/pause')
-    def pause(account:int): manager.pause(account); return {'paused':True}
+    def pause(account:int):
+        getattr(manager,'runtime_controller',manager).pause(account)
+        return {'paused':True}
     @router.post('/{account}/close')
-    def close(account:int): manager.close(account); return {'exit_requested':True}
+    def close(account:int):
+        controller=getattr(manager,'runtime_controller',None)
+        controller.pause(account,close=True) if controller else manager.close(account)
+        return {'exit_requested':True}
     app.include_router(router)

@@ -1,3 +1,18 @@
+## v0.8.1 Railway support — 12 October 2026
+
+Final full Python suite: **183 passed**, including 11 new hosted-mode cases.
+Production frontend build passed. A real subprocess smoke check passed assigned
+PORT binding, the anonymous Railway health probe, authenticated requests through
+HTTPS proxy headers and process termination. The existing eight browser tests
+passed for v0.8; frontend behavior is unchanged in this patch.
+
+New tests cover page/API/asset authentication, malformed credentials, host/origin
+and HTTP rejection, request markers, credential/storage validation, automatic
+Railway detection, single-worker ownership and database persistence after restart.
+Docker is not available in this execution environment: an actual image build and
+Railway deployment have not been performed. Live authenticated Upstox acceptance
+remains unverified. See RAILWAY.md for required deployment settings.
+
 ## v0.6.1 verification
 
 130 Python tests passed. The new synthetic 2,597-stock fixture verifies that preparation keeps every match while the stream subscribes to 2,000 and reports 597 queued. Planner and socket tests cover complete coverage across batches, pinning, unsubscribe-before-subscribe ordering, continuity invalidation, and reconnect-on-subscription failure. Authenticated live rotation has not been tested.
@@ -96,3 +111,22 @@ background study, an honest no-qualifying-settings result and full profile revie
 Full Python regression run: 142 passed before the final four focused cases were added. Final affected-module run: 62 passed, including all 16 managed-F&O tests (four additional cases cover real-rule scan/warm-up, stale stored quotes, drawdown restart protection and additive migration). Frontend production TypeScript/Vite build passed. Playwright: 9 passed, including desktop/mobile managed-account creation and visibly rendered synthetic open positions/orders. All test prices/contracts are explicitly synthetic; screenshots with a position are marked as software-test data.
 
 Authenticated Upstox network acceptance and trading profitability are not established by these tests. Fees/margin are declared simulation assumptions. The app remains single-user, single-process and paper-only.
+## v0.8.0 final verification — 12 October 2026
+
+Final full Python regression: **172 passed**. TypeScript/Vite production build:
+**passed**. Chromium/Playwright browser checks: **8 passed**, covering the focused
+live workspace, balances, chart/contract selection, emergency controls, missing
+configuration, immutable capital mismatch, mobile layout and explicit API errors.
+Backend cases include environment-driven startup, pause persistence with data
+recording, shutdown races, API isolation, reservations, strategy stops, persistent
+charts and ledger-backed agent reviews. Test market data is synthetic.
+
+The compiled frontend is included in the release ZIP. No credentials, account
+database, browser binaries or dependency folders are included. Live authenticated
+Upstox acceptance has not been performed. Tests establish software behavior, not
+strategy profitability. Agents are bounded rules with retrospective evidence;
+they do not train a neural model or discover arbitrary new strategies.
+
+Non-blocking warnings: a Starlette/HTTPX test-client deprecation and Vite's large
+chart-inclusive JavaScript chunk warning. The older results below are historical.
+

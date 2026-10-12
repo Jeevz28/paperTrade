@@ -1,0 +1,10 @@
+.env
+.env.*
+data
+.venv
+.git
+**/__pycache__
+**/node_modules
+**/test-results
+artifacts
+*.zip

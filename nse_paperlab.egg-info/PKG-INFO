@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: nse-paperlab
-Version: 0.6.1
+Version: 0.8.1
 Summary: Local-only Indian market research and paper execution
 Requires-Python: >=3.11
 Requires-Dist: python-dotenv<2,>=1

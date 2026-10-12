@@ -6,6 +6,7 @@ backend/app/MarketDataFeed_pb2.py
 backend/app/__init__.py
 backend/app/activity.py
 backend/app/adaptive.py
+backend/app/agent_team.py
 backend/app/ai.py
 backend/app/analytics.py
 backend/app/automation.py
@@ -21,6 +22,9 @@ backend/app/derivatives.py
 backend/app/evidence.py
 backend/app/extensions.sql
 backend/app/extensions_api.py
+backend/app/fno.py
+backend/app/fno_runtime.py
+backend/app/hosting.py
 backend/app/indicators.py
 backend/app/learning.py
 backend/app/learning_api.py
@@ -33,6 +37,8 @@ backend/app/release3.sql
 backend/app/release4.sql
 backend/app/release5.sql
 backend/app/release6.sql
+backend/app/release7.sql
+backend/app/release8.sql
 backend/app/replay_worker.py
 backend/app/research.py
 backend/app/risk.py
@@ -50,10 +56,14 @@ nse_paperlab.egg-info/top_level.txt
 tests/test_accounting.py
 tests/test_adaptive.py
 tests/test_additional.py
+tests/test_agent_team.py
 tests/test_api.py
 tests/test_autopilot.py
 tests/test_data.py
 tests/test_extensions.py
+tests/test_fno_auto.py
+tests/test_fno_runtime.py
+tests/test_hosting.py
 tests/test_learning.py
 tests/test_provider.py
 tests/test_research.py

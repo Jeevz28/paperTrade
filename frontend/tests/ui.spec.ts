@@ -1,407 +1,406 @@
-import { test, expect } from "@playwright/test";
-
-test("empty application renders truthfully at desktop and mobile", async ({
-  page,
-}) => {
-  const errors: string[] = [];
-  page.on("pageerror", (e) => errors.push(e.message));
-  await page.goto("http://127.0.0.1:8000");
-  await page.getByRole("button", { name: "Dashboard", exact: true }).click();
-  await expect(
-    page.getByRole("heading", { name: "Dashboard", exact: true }),
-  ).toBeVisible();
-  await expect(page.getByText("No market data loaded")).toBeVisible();
-  await expect(page.getByText("No open paper positions")).toBeVisible();
-  await page.screenshot({ path: "../artifacts/desktop.png", fullPage: true });
-  await page
-    .getByRole("button", { name: "Data Management", exact: true })
-    .click();
-  await expect(
-    page.getByRole("heading", { name: "Data workspace" }),
-  ).toBeVisible();
-  await page
-    .getByRole("button", { name: "Register instrument", exact: true })
-    .click();
-  await expect(page.getByRole("dialog")).toBeVisible();
-  await page.getByRole("button", { name: "Close", exact: true }).click();
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.getByRole("button", { name: "Dashboard", exact: true }).click();
-  await page.screenshot({ path: "../artifacts/mobile.png", fullPage: true });
-  expect(
-    await page.evaluate(
-      () => document.documentElement.scrollWidth <= window.innerWidth,
-    ),
-  ).toBeTruthy();
-  expect(errors).toEqual([]);
-});
-
-test("activity workspace empty-state controls and tabs", async ({ page }) => {
-  const errors: string[] = [];
-  page.on("pageerror", (e) => errors.push(e.message));
-  await page.goto("http://127.0.0.1:8000");
-  await page
-    .getByRole("button", { name: "Activity & Automation", exact: true })
-    .click();
-  await expect(
-    page.getByRole("heading", { name: "Activity & automation", exact: true }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "Start stream", exact: true }),
-  ).toBeDisabled();
-  await expect(
-    page.getByRole("button", { name: "Enable paper strategy", exact: true }),
-  ).toBeDisabled();
-  for (const tab of [
-    "Orders",
-    "Baskets",
-    "Decisions",
-    "Deliveries",
-    "Backtests",
-    "Timeline",
-  ])
-    await page.getByRole("button", { name: tab, exact: true }).click();
-  await page.screenshot({
-    path: "../artifacts/activity-empty.png",
-    fullPage: true,
-  });
-  await page.setViewportSize({ width: 390, height: 844 });
-  expect(
-    await page.evaluate(
-      () => document.documentElement.scrollWidth <= window.innerWidth,
-    ),
-  ).toBeTruthy();
-  expect(errors).toEqual([]);
-});
-
-test("derivative evidence and backup controls render without errors", async ({
-  page,
-}) => {
-  const errors: string[] = [];
-  page.on("pageerror", (e) => errors.push(e.message));
-  await page.goto("http://127.0.0.1:8000");
-  await page
-    .getByRole("button", { name: "Options / F&O", exact: true })
-    .click();
-  await expect(
-    page.getByRole("heading", { name: "Atomic replay execution" }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "Queue basket" }),
-  ).toBeDisabled();
-  await expect(
-    page.getByRole("heading", { name: "Import point-in-time evidence" }),
-  ).toBeVisible();
-  await page.screenshot({
-    path: "../artifacts/derivatives.png",
-    fullPage: true,
-  });
-  await page.getByRole("button", { name: "Settings", exact: true }).click();
-  const downloaded = page.waitForEvent("download");
-  await page
-    .getByRole("button", { name: "Download verified database backup" })
-    .click();
-  expect((await downloaded).suggestedFilename()).toBe("paperlab-backup.sqlite");
-  expect(errors).toEqual([]);
-});
-
-test("TEST DATA ONLY: import, replay, paper fill and ledger", async ({
-  page,
-  request,
-}) => {
-  const headers = { "X-PaperLab": "local" };
-  const instrument = await request.post(
-    "http://127.0.0.1:8000/api/instruments",
+import { test, expect, type Page } from "@playwright/test";
+const base = process.env.PAPERLAB_UI_URL ?? "http://127.0.0.1:8000";
+const seed = () => ({
+  selected_account: 42,
+  runtime: {
+    status: "RUNNING",
+    message: "Managed account started automatically.",
+    account_id: 42,
+    configured_capital_paise: 10000000,
+    capital_mismatch: false,
+  },
+  sessions: [
+    { account_id: 7, enabled: 1, state: {} },
     {
-      headers,
-      data: {
-        symbol: "UI_TEST_ONLY",
-        tick_size: 0.01,
-        metadata_source: "SYNTHETIC SOFTWARE TEST ONLY",
+      account_id: 42,
+      label: "NIFTY 50 index F&O",
+      underlying_id: 11,
+      enabled: 1,
+      state: {
+        status: "OPEN",
+        strategy: "Trend following",
+        regime: "TRENDING",
+        message: "Protecting the open call with managed stop and target.",
       },
     },
-  );
-  expect(instrument.ok()).toBeTruthy();
-  const instrumentId = (await instrument.json()).id;
-  const csv =
-    "timestamp,symbol,open,high,low,close,volume\n" +
-    Array.from({ length: 65 }, (_, i) => {
-      const time = new Date(Date.UTC(2024, 0, 2, 3, 45 + i * 5)).toISOString();
-      const price = 100 + (i % 10) * 0.1;
-      return [
-        time,
-        "UI_TEST_ONLY",
-        price,
-        (price + 1).toFixed(2),
-        (price - 1).toFixed(2),
-        price,
-        1000,
-      ].join(",");
-    }).join("\n");
-  await page.goto("http://127.0.0.1:8000");
-  await page
-    .getByRole("button", { name: "Data Management", exact: true })
-    .click();
-  await page.locator("input[type=file]").setInputFiles({
-    name: "UI_TEST_ONLY.csv",
-    mimeType: "text/csv",
-    buffer: Buffer.from(csv),
+  ],
+  balances: {
+    initial_capital_paise: 10000000,
+    cash_paise: 9497500,
+    available_cash_paise: 9397500,
+    premium_in_positions_paise: 500000,
+    margin_reserved_paise: 0,
+    pending_reserved_paise: 100000,
+    costs_paise: 2500,
+    realized_net_pnl_paise: -2500,
+    unrealized_pnl_paise: 10000,
+    equity_paise: 10007500,
+  },
+  snapshot: {
+    basket_positions: [
+      {
+        id: 1,
+        basket_id: 9,
+        instrument_id: 22,
+        contract: "NIFTY 24000 CALL",
+        signed_quantity: 50,
+        basis_price: 10000,
+        mark_paise: 10200,
+        stop_paise: 8500,
+        target_paise: 12500,
+        unrealized_pnl_paise: 10000,
+        status: "OPEN",
+        reason: "Trend entry confirmed",
+      },
+    ],
+  },
+  orders: [
+    {
+      id: 9,
+      contract: "NIFTY 24000 CALL",
+      quantity: 50,
+      signal: "Trend following",
+      status: "OPEN",
+      created_at: "2026-10-12T04:30:00Z",
+      entry_paise: 10000,
+      managed_stop: 8500,
+      target_paise: 12500,
+      reason: "Trend entry confirmed",
+    },
+  ],
+  contracts: [{ id: 22, kind: "CALL" }],
+  events: [],
+  stream: { state: "CONNECTED", last_message: "2026-10-12T05:30:00Z" },
+  agent_team: {
+    messages: [
+      {
+        role: "Market observer",
+        status: "READY",
+        message: "Trend confirmed on closed bars.",
+        timestamp: "2026-10-12T05:30:00Z",
+        payload: {},
+      },
+      {
+        role: "Risk check",
+        status: "PASSED",
+        message: "Premium and costs fit available cash.",
+        timestamp: "2026-10-12T05:30:00Z",
+        payload: {},
+      },
+    ],
+    reviews: [
+      {
+        strategy: "Trend following",
+        classification: "negative_gross_with_fees",
+        net_pnl_paise: -2500,
+        regime: "TREND",
+        evidence_status: "ledger_backed",
+        timestamp: "2026-10-12T05:30:00Z",
+      },
+    ],
+    candidates: [{ contract: "NIFTY 24000 CALL", status: "ACTIVE" }],
+  },
+});
+async function mock(page: Page, initial: any = seed()) {
+  let data = initial,
+    statusCalls = 0;
+  const posts: string[] = [],
+    chartIds: string[] = [];
+  await page.route("**/api/**", async (route) => {
+    const url = new URL(route.request().url());
+    if (route.request().method() === "POST") {
+      posts.push(url.pathname);
+      if (url.pathname.endsWith("/pause") || url.pathname.endsWith("/close"))
+        data = {
+          ...data,
+          sessions: data.sessions.map((s: any) =>
+            s.account_id === 42 ? { ...s, enabled: 0 } : s,
+          ),
+        };
+      if (url.pathname.endsWith("/start"))
+        data = {
+          ...data,
+          sessions: data.sessions.map((s: any) =>
+            s.account_id === 42 ? { ...s, enabled: 1 } : s,
+          ),
+        };
+      return route.fulfill({ json: { ok: true } });
+    }
+    if (url.pathname === "/api/fno-auto/chart") {
+      chartIds.push(url.searchParams.get("instrument_id")!);
+      expect(url.searchParams.get("account_id")).toBe("42");
+      const contract = url.searchParams.get("instrument_id") === "22",
+        price = contract ? 10000 : 2400000;
+      const bars = Array.from({ length: 65 }, (_, i) => ({
+        timestamp: new Date(Date.UTC(2026, 9, 12, 4, 30 + i)).toISOString(),
+        open: price + i * 10,
+        close: price + i * 10 + 30,
+        high: price + i * 10 + 70,
+        low: price + i * 10 - 30,
+        volume: 100 + i,
+      }));
+      return route.fulfill({
+        json: {
+          instrument_id: contract ? 22 : 11,
+          label: contract ? "NIFTY 24000 CALL" : "NIFTY 50",
+          bars,
+          forming: {
+            ...bars[64],
+            timestamp: "2026-10-12T05:35:00Z",
+            close: price + 710,
+          },
+          levels: { entry_paise: 10000, stop_paise: 8500, target_paise: 12500 },
+          source: "SYNTHETIC UI TEST",
+        },
+      });
+    }
+    if (url.pathname === "/api/fno-auto") {
+      statusCalls++;
+      return route.fulfill({ json: data });
+    }
+    return route.fulfill({
+      status: 404,
+      json: { detail: "Unexpected API request" },
+    });
   });
-  await page
-    .getByLabel("Data source / permission")
-    .fill("SYNTHETIC SOFTWARE TEST ONLY");
-  await page.getByRole("button", { name: "Validate & import" }).click();
+  return { posts, chartIds, calls: () => statusCalls };
+}
+test("focused live workspace, balances, real chart and view-only contract selection", async ({
+  page,
+}, info) => {
+  const errors: string[] = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  const api = await mock(page);
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto(base);
   await expect(
-    page.getByText("Imported 65 candles.", { exact: false }),
+    page.getByRole("heading", { name: "Live F&O workspace" }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Create new paper account" }).click();
-  await page.getByLabel("Experiment name").fill("UI TEST ONLY");
-  await page
-    .getByRole("dialog")
-    .locator('select[name="dataset"]')
-    .selectOption({ label: "UI_TEST_ONLY.csv" });
-  await page
-    .getByRole("button", { name: "Create paper account", exact: true })
-    .click();
-  await expect(page.getByRole("dialog")).not.toBeVisible();
-  await page
-    .getByRole("button", { name: "Historical Replay", exact: true })
-    .click();
-  await page.getByRole("button", { name: "Next candle" }).click();
-  await page
-    .getByRole("img", { name: "Imported OHLC candles, indicators and volume" })
-    .waitFor();
-  await page.getByLabel("Quantity", { exact: true }).fill("1");
-  await page.getByLabel("Stop (INR)", { exact: true }).fill("99");
-  await page.getByRole("button", { name: "Submit paper order" }).click();
-  await expect(page.getByText("PENDING", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Next candle" }).click();
-  await expect(page.getByText("FILLED", { exact: true })).toBeVisible();
-  const accounts = await (
-    await request.get("http://127.0.0.1:8000/api/accounts")
-  ).json();
-  const account = await (
-    await request.get("http://127.0.0.1:8000/api/accounts/" + accounts[0].id)
-  ).json();
-  expect(account.initial_capital).toBe(100000);
-  expect(account.cash_balance).toBe(89990);
-  expect(account.positions[0].instrument_id).toBe(instrumentId);
-  expect(account.reconciliation.ok).toBeTruthy();
+  await expect(page.locator("nav,input,form")).toHaveCount(0);
+  await expect(
+    page.getByRole("button", {
+      name: /CSV|replay|backtest|setup|create|settings|dashboard/i,
+    }),
+  ).toHaveCount(0);
+  const balance = page.getByRole("region", { name: "Account balance" });
+  await expect(
+    balance
+      .locator(".lf-metrics > div")
+      .filter({ hasText: "Cash after premium & fees" }),
+  ).toContainText("₹94,975.00");
+  await expect(
+    balance.locator(".lf-metrics > div").filter({ hasText: "Available cash" }),
+  ).toContainText("₹93,975.00");
+  await expect(balance.locator(".lf-balance-foot")).toContainText(
+    "Pending reserves ₹1,000.00",
+  );
+  await expect(balance).toContainText("₹5,000.00");
+  await expect(
+    page.getByRole("region", { name: "Open F&O positions" }),
+  ).toContainText("NIFTY 24000 CALL");
+  await expect(
+    page.getByRole("region", { name: "F&O orders and fills" }),
+  ).toContainText("FILLED / OPEN");
+  await expect(
+    page.getByText("Premium and costs fit available cash."),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("img", { name: /NIFTY 50: candlesticks/ }),
+  ).toBeVisible();
+  await expect(page.locator(".lf-chart canvas")).toHaveCount(1);
+  expect(api.chartIds[0]).toBe("11");
+  await page.getByText("Strategy reviews · 1", { exact: true }).click();
+  await expect(
+    page.getByText("negative gross with fees", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.locator(".lf-review").filter({ hasText: "negative gross with fees" }),
+  ).toContainText("-₹25.00");
+  await expect.poll(() => api.chartIds.length).toBeGreaterThan(1);
+  await expect.poll(api.calls).toBeGreaterThan(1);
   await page.screenshot({
-    path: "../artifacts/replay-test-only.png",
+    path: info.outputPath("live-fno-desktop.png"),
     fullPage: true,
   });
-  await page
-    .getByRole("button", { name: "Account Ledger", exact: true })
-    .click();
-  await expect(
-    page.getByRole("cell", { name: "PAPER_BUY", exact: true }),
-  ).toBeVisible();
-  const ds = (
-    await (await request.get("http://127.0.0.1:8000/api/datasets")).json()
-  )[0];
-  const response = await request.post("http://127.0.0.1:8000/api/accounts", {
-    headers,
-    data: { name: "UI_AUTOMATION_TEST_ONLY", dataset_id: ds.id },
+  await info.attach("desktop", {
+    path: info.outputPath("live-fno-desktop.png"),
+    contentType: "image/png",
   });
-  const aid = (await response.json()).id;
-  await page.reload();
-  await page
-    .getByRole("button", { name: "Activity & Automation", exact: true })
-    .click();
-  await page
-    .getByLabel("Paper account", { exact: true })
-    .selectOption(String(aid));
-  const automation = page.getByRole("region", {
-    name: "Automatic strategy execution",
-    exact: true,
+  await page.getByLabel("Chart instrument").selectOption("22");
+  await expect(
+    page.getByRole("img", { name: /Entry, SL and target levels/ }),
+  ).toBeVisible();
+  expect(api.chartIds).toContain("22");
+  expect(api.posts).toEqual([]);
+  await page.screenshot({
+    path: info.outputPath("live-fno-contract.png"),
+    fullPage: true,
   });
-  await automation
-    .getByRole("combobox", { name: "Contract A", exact: true })
-    .selectOption(String(instrumentId));
-  await automation
-    .getByRole("combobox", { name: "Strategy", exact: true })
-    .selectOption("adaptive");
-  await automation
-    .getByRole("button", { name: "Enable paper strategy", exact: true })
+  expect(errors).toEqual([]);
+});
+test("emergency controls target selected account and resume correctly", async ({
+  page,
+}) => {
+  const api = await mock(page);
+  await page.goto(base);
+  await page.getByRole("button", { name: "Pause", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Resume", exact: true }),
+  ).toBeEnabled();
+  expect(api.posts).toEqual(["/api/fno-auto/42/pause"]);
+  await page.getByRole("button", { name: "Resume", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Pause", exact: true }),
+  ).toBeEnabled();
+  await page
+    .getByRole("button", { name: "Close paper position & pause", exact: true })
     .click();
+  await expect(page.getByRole("status")).toContainText(
+    "Watch the position for fill confirmation",
+  );
+  expect(api.posts).toEqual([
+    "/api/fno-auto/42/pause",
+    "/api/fno-auto/42/start",
+    "/api/fno-auto/42/close",
+  ]);
+});
+test("empty configuration-blocked runtime needs no setup form", async ({
+  page,
+}, info) => {
+  await mock(page, {
+    runtime: {
+      status: "CONFIGURATION_REQUIRED",
+      message: "Configured capital is missing.",
+      account_id: null,
+    },
+    sessions: [],
+    selected_account: null,
+    snapshot: null,
+    balances: {},
+    orders: [],
+    agent_team: { messages: [] },
+  });
+  await page.goto(base);
+  await expect(page.getByText("Configured capital is missing.")).toBeVisible();
   await expect(
-    automation.getByRole("cell", { name: "Enabled", exact: true }),
+    page.getByRole("button", { name: "Resume", exact: true }),
+  ).toBeDisabled();
+  await expect(
+    page.getByRole("button", { name: "Close paper position & pause" }),
+  ).toBeDisabled();
+  await expect(
+    page.getByText("No open paper positions.", { exact: false }),
   ).toBeVisible();
-  await automation
-    .getByRole("button", { name: "Start background replay", exact: true })
-    .click();
-  await page.getByRole("button", { name: "Decisions", exact: true }).click();
+  await expect(page.locator("nav,input,form")).toHaveCount(0);
+  await page.screenshot({
+    path: info.outputPath("live-fno-blocked.png"),
+    fullPage: true,
+  });
+});
+test("capital mismatch blocks resume but preserves emergency exit", async ({
+  page,
+}) => {
+  const data = seed();
+  data.sessions[1].enabled = 0;
+  data.runtime.capital_mismatch = true;
+  await mock(page, data);
+  await page.goto(base);
   await expect(
-    page.getByRole("cell", { name: "WARMUP", exact: true }).first(),
-  ).toBeVisible();
-  await expect(
-    automation.getByRole("heading", { name: "Adaptive strategy monitor" }),
-  ).toBeVisible();
-  await expect(
-    automation.getByText("Adaptive selection requires 200 completed bars.", {
-      exact: true,
+    page.getByText("Configured capital differs from this account.", {
+      exact: false,
     }),
   ).toBeVisible();
-  const rules = await (
-    await request.get("http://127.0.0.1:8000/api/automation")
-  ).json();
-  const adaptive = rules.find((r: any) => r.account_id === aid);
-  expect(adaptive.strategy).toBe("adaptive");
-  expect(adaptive.adaptive.selected).toBeNull();
-  expect(adaptive.adaptive.required).toBe(200);
-  await automation
-    .getByRole("button", { name: "Pause background replay", exact: true })
-    .click();
-  await automation
-    .getByRole("button", {
-      name: "Stop strategy & cancel its pending entries",
-      exact: true,
-    })
-    .click();
   await expect(
-    automation.getByRole("cell", { name: "Stopped", exact: true }),
-  ).toBeVisible();
-  await automation.screenshot({
-    path: "../artifacts/automation-test-only.png",
-  });
+    page.getByRole("button", { name: "Resume", exact: true }),
+  ).toBeDisabled();
+  await expect(
+    page.getByRole("button", { name: "Close paper position & pause" }),
+  ).toBeEnabled();
+});
+test("mobile has no page overflow and keeps positions accessible", async ({
+  page,
+}, info) => {
+  const errors: string[] = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await mock(page);
   await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(base);
+  await expect(page.locator(".lf-chart canvas")).toHaveCount(1);
   expect(
     await page.evaluate(
-      () => document.documentElement.scrollWidth <= window.innerWidth,
+      () => document.documentElement.scrollWidth <= innerWidth,
     ),
   ).toBeTruthy();
-});
-
-test("NSE learning import and honest no-qualifying-profile workflow", async ({
-  page,
-  request,
-}) => {
-  test.setTimeout(60000);
-  const headers = { "X-PaperLab": "local" };
-  const head =
-    "TradDt,Sgmt,Src,FinInstrmTp,FinInstrmId,ISIN,TckrSymb,SctySrs,OpnPric,HghPric,LwPric,ClsPric,TtlTradgVol";
-  const lines = Array.from({ length: 610 }, (_, i) => {
-    const d = new Date(Date.UTC(2022, 0, 1 + i)).toISOString().slice(0, 10);
-    return `${d},CM,NSE,STK,123,INE000A01010,UI_LEARNING_TEST,EQ,100,101,99,100,1000`;
-  });
-  await page.goto("http://127.0.0.1:8000");
-  await page
-    .getByRole("button", { name: "Data Management", exact: true })
-    .click();
-  await page.getByRole("combobox", {name: "File format", exact: true}).selectOption("nse");
-  await page
-    .getByLabel("Dataset", { exact: true })
-    .setInputFiles({
-      name: "NSE_LEARNING_TEST.csv",
-      mimeType: "text/csv",
-      buffer: Buffer.from([head, ...lines].join("\n")),
-    });
-  await page
-    .getByLabel("Data source / permission")
-    .fill("SYNTHETIC SOFTWARE TEST ONLY");
-  await page.getByRole("button", { name: "Validate & import" }).click();
   await expect(
-    page.getByText("Imported 610 candles.", { exact: false }),
+    page.getByRole("region", { name: "Open F&O positions" }),
   ).toBeVisible();
-  const ds = (
-    await (await request.get("http://127.0.0.1:8000/api/datasets")).json()
-  ).find((d: any) => d.name === "NSE_LEARNING_TEST.csv");
-  const response = await request.post("http://127.0.0.1:8000/api/accounts", {
-    headers,
-    data: {
-      name: "LEARNING_UI_TEST",
-      dataset_id: ds.id,
-      costs: { brokerage_paise: 1, slippage_bps: 1 },
-    },
+  await page.screenshot({
+    path: info.outputPath("live-fno-mobile.png"),
+    fullPage: true,
   });
-  const aid = (await response.json()).id;
-  await page.reload();
-  await page
-    .getByRole("button", { name: "Activity & Automation", exact: true })
-    .click();
-  await page
-    .getByLabel("Paper account", { exact: true })
-    .selectOption(String(aid));
-  const panel = page.getByRole("region", { name: "CSV strategy learning" });
-  await panel.getByRole("combobox", {name: "Learning dataset", exact: true}).selectOption(String(ds.id));
-  const sec = await (
-    await request.get(
-      `http://127.0.0.1:8000/api/learning/securities?dataset_id=${ds.id}`,
-    )
-  ).json();
-  await expect(
-    panel.getByRole("combobox", {name: "Learning security", exact: true}).locator("option"),
-  ).toHaveCount(2);
-  await panel
-    .getByRole("combobox", {name: "Learning security", exact: true})
-    .selectOption(String(sec[0].instrument_id));
-  await panel
-    .getByRole("button", { name: "Study and validate strategies" })
-    .click();
-  await expect(
-    panel.getByRole("cell", { name: "No qualifying settings", exact: true }),
-  ).toBeVisible({ timeout: 30000 });
-  await panel.getByRole("button", { name: /Review profile/ }).click();
-  await expect(panel.getByRole("paragraph").filter({hasText: "Disjoint chronological 50%"})).toBeVisible();
-  await panel.screenshot({ path: "../artifacts/learning-test-only.png" });
-});
-
-
-test('automatic paper setup explains costs, capital and scan status', async ({page})=>{
-  const errors:string[]=[];
-  page.on('pageerror',e=>errors.push(e.message));
-  await page.goto('http://127.0.0.1:8000');
-  await page.getByRole('button',{name:'Auto Paper',exact:true}).click();
-  await expect(page.getByRole('heading',{name:'Automatic paper trading',exact:true})).toBeVisible();
-  await expect(page.getByLabel('Capital (INR)',{exact:true})).toHaveValue('5000');
-  await expect(page.getByRole('button',{name:'Start automatic paper trading',exact:true})).toBeDisabled();
-  await expect(page.getByText('No paper orders yet.',{exact:false})).toBeVisible();
-  await page.screenshot({path:'../artifacts/auto-paper.png',fullPage:true});
-  await page.setViewportSize({width:390,height:844});
-  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBeTruthy();
+  await info.attach("mobile", {
+    path: info.outputPath("live-fno-mobile.png"),
+    contentType: "image/png",
+  });
   expect(errors).toEqual([]);
 });
-
-test('SYNTHETIC large universe shows active and queued coverage',async({page})=>{
-  await page.route('**/api/auto-paper',async route=>route.fulfill({json:{
-    sessions:[{account_id:991,name:'SYNTHETIC BATCH TEST',initial_capital:500000,enabled:1,state:{}}],
-    stocks:Array.from({length:2597},(_,i)=>({instrument_id:i,ticker:'TEST'+i,status:i<2000?'WARMING_UP':'QUEUED_FOR_NEXT_BATCH',detail:{}})),
-    orders:[],stream:{state:'CONNECTED',accounts:[991],subscribed_count:2000,queued_count:597,universe_count:2597,rotation_after_market_minutes:220,snapshots:[]}
-  }}));
-  await page.goto('http://127.0.0.1:8000');
-  await page.getByRole('button',{name:'Auto Paper',exact:true}).click();
-  await expect(page.getByText('Batch coverage: 2000 active / 597 queued / 2597 total')).toBeVisible();
-  await page.getByLabel('Find stock or status').fill('QUEUED');
-  await expect(page.getByRole('cell',{name:'QUEUED FOR NEXT BATCH',exact:true})).toHaveCount(597);
+test("status failures are explicit and do not invent balances", async ({
+  page,
+}) => {
+  await page.route("**/api/**", (route) =>
+    route.fulfill({ status: 503, json: { detail: "Backend unavailable" } }),
+  );
+  await page.goto(base);
+  await expect(page.getByRole("alert")).toContainText("Backend unavailable");
+  await expect(
+    page.getByRole("region", { name: "Account balance" }),
+  ).toContainText("Unavailable");
+  await expect(
+    page.getByRole("button", { name: "Resume", exact: true }),
+  ).toBeDisabled();
 });
 
-test('F&O home defaults to index and creates a persistent separate managed account',async({page})=>{
-  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
-  await page.goto('http://127.0.0.1:8000');
-  await expect(page.getByRole('heading',{name:'Automated F&O trading',exact:true})).toBeVisible();
-  await expect(page.getByText('This trades contracts on the NIFTY 50 index',{exact:false})).toBeVisible();
-  await expect(page.getByLabel('Initial virtual capital (INR)')).toHaveValue('5000');
-  await page.getByRole('button',{name:'Create NIFTY account',exact:true}).click();
-  await expect(page.getByLabel('F&O paper account')).toContainText('NIFTY 50 index F&O · DEFAULT');
-  await expect(page.getByRole('button',{name:'Start automated F&O',exact:true})).toBeEnabled();
-  await expect(page.getByRole('region',{name:'Open F&O positions'})).toBeVisible();
-  await expect(page.getByRole('region',{name:'F&O orders and fills'})).toBeVisible();
-  await page.screenshot({path:'../artifacts/fno-home.png',fullPage:true});
-  await page.setViewportSize({width:390,height:844});
-  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBeTruthy();
-  await page.screenshot({path:'../artifacts/fno-mobile.png',fullPage:true});
-  expect(errors).toEqual([]);
+test("risk waiting reason remains visible and chart failures are isolated", async ({
+  page,
+}) => {
+  const data = seed();
+  data.sessions[1].state.message =
+    "Full premium exceeds the 1% risk budget. Waiting for an affordable lot.";
+  await mock(page, data);
+  await page.route("**/api/fno-auto/chart?**", (route) =>
+    route.fulfill({ status: 503, json: { detail: "Fresh bars unavailable" } }),
+  );
+  await page.goto(base);
+  await expect(
+    page.getByText(
+      "Full premium exceeds the 1% risk budget. Waiting for an affordable lot.",
+    ),
+  ).toBeVisible();
+  await expect(page.getByRole("alert")).toContainText("Fresh bars unavailable");
+  await expect(
+    page.getByRole("region", { name: "Account balance" }),
+  ).toContainText("₹94,975.00");
+  await expect(
+    page.getByRole("button", { name: "Pause", exact: true }),
+  ).toBeEnabled();
 });
-
-test('SYNTHETIC F&O fills and live positions are visible without navigating away',async({page})=>{
-  await page.route('**/api/fno-auto',async route=>route.fulfill({json:{
-    selected_account:999,sessions:[{account_id:999,label:'NIFTY 50 index F&O',market:'NIFTY',initial_capital:10000000,enabled:1,state:{status:'OPEN',message:'SYNTHETIC SOFTWARE TEST — not a market result',strategy:'trend'}}],
-    snapshot:{equity_paise:10010000,available_cash_paise:9000000,realized_pnl:0,costs:2500,basket_positions:[{id:1,basket_id:1,contract:'SYNTHETIC NIFTY CALL',kind:'CALL',expiry:'2026-10-29',signed_quantity:10,basis_price:10000,mark_paise:11000,unrealized_pnl_paise:10000,stop_paise:7500,target_paise:15000,status:'OPEN'}]},
-    orders:[{id:1,contract:'SYNTHETIC NIFTY CALL',signal:'trend',quantity:10,status:'OPEN',created_at:'2026-10-12T04:30:00+00:00',entry_paise:10000,exit_paise:null,net_pnl:null}],events:[],contracts:[],stream:{state:'CONNECTED'}
-  }}));
-  await page.goto('http://127.0.0.1:8000');
-  await expect(page.getByRole('cell',{name:'FILLED / OPEN',exact:true})).toBeVisible();
-  await expect(page.getByRole('region',{name:'Open F&O positions'}).getByText('SYNTHETIC NIFTY CALL',{exact:true})).toBeVisible();
-  await expect(page.getByRole('button',{name:'Close paper position & pause',exact:true})).toBeEnabled();
-  await page.screenshot({path:'../artifacts/fno-synthetic-position.png',fullPage:true});
+test("failed pause remains visible and does not claim success", async ({
+  page,
+}) => {
+  await mock(page);
+  await page.route("**/api/fno-auto/42/pause", (route) =>
+    route.fulfill({
+      status: 503,
+      json: { detail: "Pause could not be completed" },
+    }),
+  );
+  await page.goto(base);
+  await page.getByRole("button", { name: "Pause", exact: true }).click();
+  await expect(page.getByRole("alert")).toContainText(
+    "Pause could not be completed",
+  );
+  await expect(
+    page.getByRole("button", { name: "Pause", exact: true }),
+  ).toBeEnabled();
+  await expect(page.getByRole("status")).toHaveCount(0);
 });

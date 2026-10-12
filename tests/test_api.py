@@ -5,7 +5,7 @@ from conftest import test_csv as fixture_csv
 
 
 def test_local_api_workflow(tmp_path):
-    app = create_app(tmp_path / "api.db", Policy())
+    app = create_app(tmp_path / "api.db", Policy(), legacy_api=True)
     client = TestClient(app, headers={"x-paperlab": "local"})
     assert client.get("/api/health").json()["paper_only"]
     assert client.get("/api/candles?instrument_id=1").json()["candles"] == []
@@ -47,7 +47,7 @@ def test_local_api_workflow(tmp_path):
 
 
 def test_security(tmp_path):
-    c = TestClient(create_app(tmp_path / "security.db", Policy()))
+    c = TestClient(create_app(tmp_path / "security.db", Policy(), legacy_api=True))
     assert c.post("/api/accounts", json={"name": "bad"}).status_code == 403
     assert c.get("/api/health", headers={"Host": "evil.example"}).status_code == 403
     assert (

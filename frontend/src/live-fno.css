@@ -1,0 +1,521 @@
+.lf-app {
+  min-height: 100vh;
+  background: #f2f5f3;
+  color: #203b34;
+  font-size: 13px;
+}
+.lf-app * {
+  box-sizing: border-box;
+}
+.lf-app .lf-header {
+  height: 66px;
+  position: static;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+  border-bottom: 1px solid #dce5df;
+  background: #fff;
+  gap: 12px;
+}
+.lf-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 16px;
+}
+.lf-logo {
+  display: grid;
+  place-items: center;
+  width: 31px;
+  height: 31px;
+  border-radius: 9px;
+  background: #185e4c;
+  color: #fff;
+}
+.lf-pill {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #527168;
+  background: #eaf1ed;
+  border: 1px solid #d9e6de;
+  padding: 5px 8px;
+  border-radius: 5px;
+  white-space: nowrap;
+}
+.lf-app .lf-main {
+  max-width: 1600px;
+  margin: auto;
+  padding: 24px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+.lf-app h1 {
+  font-size: 27px;
+  letter-spacing: -0.7px;
+  margin: 4px 0 6px;
+}
+.lf-app h2 {
+  font-size: 15px;
+  letter-spacing: -0.15px;
+  margin: 0;
+}
+.lf-app p {
+  margin: 6px 0;
+  line-height: 1.55;
+}
+.lf-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+.lf-heading p {
+  color: #697c74;
+}
+.lf-app .lf-eyebrow {
+  font-size: 10px;
+  letter-spacing: 0.13em;
+  font-weight: 700;
+  color: #458372;
+}
+.lf-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.lf-app button {
+  border-radius: 7px;
+  font-size: 12px;
+  padding: 10px 14px;
+  background: #fff;
+  border: 1px solid #c7d8ce;
+  color: #295b49;
+}
+.lf-app button:hover {
+  background: #e6eee9;
+}
+.lf-app button:focus-visible,
+.lf-app select:focus-visible,
+.lf-app summary:focus-visible {
+  outline: 2px solid #168677;
+  outline-offset: 3px;
+}
+.lf-app .lf-danger {
+  color: #9a444b;
+  border-color: #e1c7ca;
+}
+.lf-runtime {
+  padding: 13px 16px;
+  background: #e7efea;
+  border: 1px solid #d6e3da;
+  border-radius: 9px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.lf-runtime > div {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.lf-runtime small {
+  color: #62756b;
+}
+.lf-blocked {
+  background: #fff4df;
+  border-color: #ecd7aa;
+  color: #855a17;
+}
+.lf-alert {
+  padding: 12px 15px;
+  background: #fff0f0;
+  border: 1px solid #efc7cb;
+  border-radius: 7px;
+  color: #983c46;
+  overflow-wrap: anywhere;
+}
+.lf-notice {
+  padding: 10px 15px;
+  background: #e2eee7;
+  border-radius: 7px;
+}
+.lf-balance,
+.lf-panel {
+  border: 1px solid #dbe4de;
+  border-radius: 10px;
+  background: #fff;
+  min-width: 0;
+  overflow: hidden;
+}
+.lf-section-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 18px;
+}
+.lf-section-title > span,
+.lf-section-title p {
+  font-size: 11px;
+  color: #74867c;
+}
+.lf-section-title > span strong {
+  font-size: 16px;
+  color: #254b3a;
+  margin-left: 8px;
+}
+.lf-metrics {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  padding: 6px 18px 20px;
+}
+.lf-metrics > div {
+  padding: 0 16px;
+  border-left: 1px solid #e3eae6;
+  min-width: 0;
+}
+.lf-metrics > div:first-child {
+  border: 0;
+  padding-left: 0;
+}
+.lf-metrics span {
+  display: block;
+  color: #728178;
+  font-size: 11px;
+  margin-bottom: 9px;
+}
+.lf-metrics strong {
+  font-size: 22px;
+  letter-spacing: -0.65px;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.lf-gain {
+  color: #168677;
+}
+.lf-loss {
+  color: #b94554;
+}
+.lf-balance-foot {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+  border-top: 1px solid #edf1ef;
+  background: #fbfcfb;
+  padding: 10px 18px;
+  color: #718277;
+  font-size: 11px;
+}
+.lf-grid {
+  display: grid;
+  align-items: start;
+  grid-template-columns: minmax(0, 1fr) 330px;
+  gap: 16px;
+}
+.lf-chart {
+  height: 340px;
+  width: 100%;
+  min-width: 0;
+}
+.lf-chart-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 12px 18px;
+  border-top: 1px solid #edf1ef;
+  color: #718277;
+  font-size: 10px;
+}
+.lf-app .lf-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 10px;
+  color: #718277;
+  max-width: 48%;
+  min-width: 0;
+}
+.lf-selector select {
+  width: 100%;
+  min-width: 0;
+  font-size: 12px;
+  padding: 7px;
+  border-radius: 5px;
+  border: 1px solid #dbe4de;
+  background: #f8faf9;
+  color: #254b3a;
+}
+.lf-strategy {
+  margin: 0 18px;
+  padding: 12px;
+  border: 1px solid #dce8e0;
+  background: #f6f9f7;
+  border-radius: 7px;
+}
+.lf-strategy > strong {
+  display: block;
+  font-size: 16px;
+}
+.lf-strategy > span {
+  display: block;
+  margin: 5px 0;
+  font-size: 11px;
+  color: #48735e;
+}
+.lf-strategy p {
+  font-size: 12px;
+}
+.lf-app .lf-muted {
+  padding: 5px 18px;
+  font-size: 11px;
+  color: #7d8a82;
+}
+.lf-messages {
+  max-height: 220px;
+  overflow: auto;
+  padding: 0 18px;
+}
+.lf-messages article {
+  padding: 10px 0;
+  border-bottom: 1px solid #edf1ef;
+}
+.lf-messages article > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+}
+.lf-messages article > div span {
+  color: #6d8477;
+}
+.lf-messages article p {
+  font-size: 12px;
+}
+.lf-messages time {
+  font-size: 10px;
+  color: #8a968f;
+}
+.lf-team details {
+  padding: 10px 18px;
+  border-top: 1px solid #edf1ef;
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+.lf-app summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.lf-empty {
+  padding: 22px 18px;
+  color: #7f8e85;
+  font-size: 12px;
+}
+.lf-chart.lf-empty {
+  display: grid;
+  place-items: center;
+  background: linear-gradient(180deg, #fff, #f8faf9);
+}
+.lf-count {
+  margin-left: 7px;
+  font-size: 11px;
+  border-radius: 4px;
+  padding: 2px 6px;
+  background: #eaf1ed;
+  color: #58836b;
+}
+.lf-table-scroll {
+  overflow-x: auto;
+  max-width: 100%;
+}
+.lf-app table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.lf-app th {
+  font-size: 10px;
+  font-weight: 500;
+  color: #718477;
+  background: #f7f9f8;
+  text-transform: none;
+  letter-spacing: 0;
+  padding: 10px 18px;
+  text-align: left;
+}
+.lf-app td {
+  padding: 13px 18px;
+  border-top: 1px solid #edf1ef;
+  color: #365446;
+  font-variant-numeric: tabular-nums;
+}
+.lf-app td small {
+  display: block;
+  font-size: 10px;
+  color: #7b8c81;
+  margin-top: 5px;
+  max-width: 260px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.lf-events {
+  padding: 14px 18px;
+  color: #61796b;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.lf-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: #809186;
+  font-size: 10px;
+}
+.lf-team,
+.lf-runtime {
+  overflow-wrap: anywhere;
+}
+@media (min-width: 1450px) {
+  .lf-grid {
+    grid-template-columns: minmax(0, 1fr) 370px;
+  }
+  .lf-chart {
+    height: 380px;
+  }
+}
+@media (max-width: 1100px) {
+  .lf-metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 20px 0;
+  }
+  .lf-metrics > div:nth-child(4) {
+    padding-left: 0;
+    border: 0;
+  }
+  .lf-grid {
+    grid-template-columns: minmax(0, 1fr) 300px;
+  }
+  .lf-heading {
+    align-items: flex-start;
+  }
+  .lf-actions {
+    justify-content: flex-end;
+  }
+  .lf-metrics strong {
+    font-size: 21px;
+  }
+}
+@media (max-width: 760px) {
+  .lf-app .lf-header {
+    padding: 12px 16px;
+    height: auto;
+    flex-wrap: wrap;
+  }
+  .lf-brand {
+    font-size: 14px;
+  }
+  .lf-app .lf-main {
+    padding: 18px 12px;
+    gap: 12px;
+  }
+  .lf-heading {
+    flex-direction: column;
+    gap: 10px;
+  }
+  .lf-app h1 {
+    font-size: 24px;
+  }
+  .lf-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+  .lf-actions button {
+    min-height: 44px;
+  }
+  .lf-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .lf-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px 0;
+    padding: 4px 14px 20px;
+  }
+  .lf-metrics > div {
+    padding: 0 12px;
+  }
+  .lf-metrics > div:nth-child(odd) {
+    padding-left: 0;
+    border: 0;
+  }
+  .lf-metrics > div:nth-child(even) {
+    padding-left: 12px;
+    border-left: 1px solid #e3eae6;
+  }
+  .lf-metrics strong {
+    font-size: 21px;
+  }
+  .lf-section-title {
+    padding: 14px;
+    align-items: flex-start;
+  }
+  .lf-chart {
+    height: 300px;
+  }
+  .lf-balance-foot {
+    gap: 10px 18px;
+    padding: 10px 14px;
+  }
+  .lf-messages {
+    max-height: 260px;
+  }
+  .lf-footer {
+    flex-direction: column;
+  }
+  .lf-selector select {
+    min-height: 40px;
+  }
+  .lf-section-title .lf-pill {
+    font-size: 9px;
+  }
+  .lf-runtime {
+    padding: 12px;
+  }
+  .lf-balance .lf-section-title > span strong {
+    display: block;
+    margin: 4px 0 0;
+  }
+  .lf-balance .lf-section-title > span {
+    text-align: right;
+  }
+}
+.lf-review {
+  padding: 12px 0;
+  border-bottom: 1px solid #edf1ef;
+}
+.lf-review:last-child {
+  border-bottom: 0;
+}
+.lf-review time {
+  font-size: 10px;
+  color: #7b8c81;
+}
+
+.lf-app td {
+  white-space: nowrap;
+  overflow-wrap: normal;
+  min-width: 100px;
+}
+.lf-app td:first-child {
+  min-width: 175px;
+}
+.lf-app td:last-child {
+  max-width: 280px;
+  white-space: normal;
+  overflow-wrap: break-word;
+}

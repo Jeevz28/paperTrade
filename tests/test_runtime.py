@@ -467,7 +467,7 @@ def test_runtime_api_automation_delivery_controls(db, dataset, instrument):
     from fastapi.testclient import TestClient
     from backend.app.main import create_app
 
-    app = create_app(db.path, Policy())
+    app = create_app(db.path, Policy(), legacy_api=True)
     with TestClient(app, headers={"X-PaperLab": "local"}) as client:
         a = client.post(
             "/api/accounts", json={"name": "TEST", "dataset_id": dataset}
@@ -524,7 +524,7 @@ def test_async_basket_job_api_and_invalid_time(db):
     from backend.app.main import create_app
 
     ids, b, a, d = setup(db, ("CALL", "CALL"), [[10, 10, 12, 13], [5, 5, 6, 7]])
-    app = create_app(db.path, Policy())
+    app = create_app(db.path, Policy(), legacy_api=True)
     body = {
         "dataset_id": b.snapshot(a)["dataset_id"],
         "initial_capital": 10000,
