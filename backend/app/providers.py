@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from collections import deque
 from datetime import date, timedelta, datetime
+from zoneinfo import ZoneInfo
 import gzip
 import io
 import json
@@ -139,7 +140,7 @@ class UpstoxProvider(MarketDataProvider):
         if first > last or (last - first).days > 3660:
             raise DomainError("Invalid date range (maximum ten years)")
         self.policy.check(
-            (datetime.combine(last, datetime.max.time(), UTC)).isoformat()
+            (datetime.combine(last, datetime.max.time(), ZoneInfo("Asia/Kolkata"))).isoformat()
         )
         unit, interval = (
             ("days", 1)

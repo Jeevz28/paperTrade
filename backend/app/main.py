@@ -116,7 +116,7 @@ def create_app(db_path=None, policy=None, *, legacy_api=False, autostart=True):
 
     app = FastAPI(
         title="NSE PaperLab",
-        version="0.8.1",
+        version="0.8.2",
         lifespan=lifespan,
         description="Private paper simulation. No real-order API.",
     )
@@ -208,7 +208,7 @@ def create_app(db_path=None, policy=None, *, legacy_api=False, autostart=True):
             "data_cutoff": policy.cutoff().isoformat(),
             "upstox_enabled": os.getenv("UPSTOX_ENABLED", "false") == "true",
             "ai_enabled": os.getenv("QWEN_ENABLED", "false") == "true",
-            "version": "0.8.1",
+            "version": "0.8.2",
         }
 
     @app.get("/api/instruments")

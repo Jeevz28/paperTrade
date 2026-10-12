@@ -1,4 +1,4 @@
-# PaperLab 0.8.1 — live F&O paper trading
+# PaperLab 0.8.2 — live F&O paper trading
 
 **Railway hosting:** [step-by-step deployment and variables](docs/RAILWAY.md). Includes Docker build, HTTPS password protection and persistent-volume checks.
 

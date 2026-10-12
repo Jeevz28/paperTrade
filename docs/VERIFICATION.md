@@ -1,3 +1,7 @@
+## v0.8.2 midnight date fix
+
+Historical request cutoff now uses the end of the Indian market date, instead of UTC. Regression reproduces 22:08 UTC / 03:38 IST and verifies yesterday is allowed, future dates remain blocked and education restrictions remain active. All 17 provider/date tests passed. The previous full suite had 183 passing tests; no frontend behavior changed.
+
 ## v0.8.1 Railway support — 12 October 2026
 
 Final full Python suite: **183 passed**, including 11 new hosted-mode cases.
